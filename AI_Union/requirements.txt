@@ -1,0 +1,23 @@
+# --- Podstawa Systemu (Obliczenia i AI) ---
+numpy
+torch
+torchvision
+torchaudio
+sympy
+pandas
+
+# --- System Muzyczny i Audio ---
+music21
+musicbrainzngs
+pydub
+midi2audio
+unidecode
+
+# --- System i Monitorowanie ---
+psutil
+
+# --- Narzędzia pomocnicze ---
+requests
+charset-normalizer
+chardet
+fonttools
