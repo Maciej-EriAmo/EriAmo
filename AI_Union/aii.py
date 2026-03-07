@@ -1,7 +1,18 @@
 # -*- coding: utf-8 -*-
 """
-aii.py v9.8.4
+aii.py v9.9.0
 RDZEŃ MASTER BRAIN - EriAmo Union + Prefrontal Cortex + Quantum Emotions + FractalHorizon
+
+ZMIANY v9.9.0:
+- WYŁĄCZONO: System muzyczny, rysowanie fraktali (fractal.py), generator haiku
+- BUGFIX KRYTYCZNY #1: Ścieżki INSTYNKT i INSTYNKT+Q nie zapisywały dialogu do D_Map
+  Dodano _store_dialog() wywoływany we WSZYSTKICH ścieżkach interact()
+- BUGFIX #2: Próg zapisu dialogu (impact > 0.4) odrzucał większość normalnych rozmów
+  Usunięto próg — każdy dialog jest teraz zapisywany
+- BUGFIX #3: Brak auto-save — crash = utrata danych
+  Dodano _maybe_autosave() — automatyczny zapis co 10 interakcji
+- BUGFIX #4: Powitania i introspekcja omijały licznik interakcji
+  Dodano _maybe_autosave() w obu ścieżkach
 
 ZMIANY v9.8.4:
 - BUGFIX: NameError w interact() – 'status' undefined gdy last_winner_id nie istnieje w D_Map
@@ -36,12 +47,12 @@ except ImportError:
     print("⚠ KRYTYCZNY BŁĄD: Brak union_config.py")
     sys.exit(1)
 
-import haiku
-
-try:
-    import fractal
-except:
-    fractal = None
+# === WYŁĄCZONE PODSYSTEMY v9.9.0 ===
+# Haiku, Fraktale (rysowanie), Muzyka — wyłączone na żądanie
+# import haiku  # WYŁĄCZONY
+# import fractal  # WYŁĄCZONY
+haiku = None
+fractal = None
 
 try: from chunk_lexicon import ChunkLexicon
 except: ChunkLexicon = None
@@ -106,6 +117,36 @@ except ImportError:
 # ────────────────────────────────────────────────────────────────
 # KLASY POMOCNICZE
 # ────────────────────────────────────────────────────────────────
+
+# v9.9.0: Kompletna lista polskich stopwords — jedna definicja, jedno źródło prawdy
+# Poprzednio 3 oddzielne, niekompletne listy ("mnie", "mi", "mu" brakowało wszędzie)
+PL_STOPWORDS = {
+    # zaimki osobowe / zwrotne
+    'ja', 'ty', 'on', 'ona', 'ono', 'my', 'wy', 'oni', 'one', 'się', 'siebie', 'sobie',
+    # zaimki w przypadkach
+    'mnie', 'mi', 'mój', 'moja', 'moje', 'moim', 'moją',
+    'cię', 'ci', 'ciebie', 'twój', 'twoja', 'twoje',
+    'go', 'mu', 'jej', 'ich', 'im', 'nas', 'was', 'wam', 'nam',
+    # zaimki wskazujące
+    'ten', 'ta', 'to', 'te', 'tego', 'tej', 'tym', 'tych', 'tę', 'temu',
+    'tamten', 'tamta', 'tamto',
+    # przyimki
+    'w', 'z', 'na', 'do', 'od', 'za', 'po', 'o', 'u', 'ze', 'we', 'ku',
+    'dla', 'bez', 'przy', 'nad', 'pod', 'przed', 'między', 'przez',
+    # spójniki / partykuły
+    'i', 'a', 'ale', 'że', 'bo', 'lub', 'czy', 'ani', 'więc', 'albo',
+    'jak', 'co', 'gdy', 'gdyby', 'żeby', 'choć', 'aby',
+    # przysłówki / partykuły
+    'nie', 'tak', 'też', 'już', 'jeszcze', 'tylko', 'bardzo',
+    'tu', 'tam', 'teraz', 'potem', 'wtedy', 'zawsze', 'nigdy',
+    'no', 'właśnie', 'może', 'pewnie', 'chyba', 'raczej',
+    # czasowniki posiłkowe / częste
+    'jest', 'być', 'był', 'była', 'było', 'byli', 'będzie', 'są',
+    'mam', 'masz', 'ma', 'mamy', 'macie', 'mają',
+    # inne częste
+    'coś', 'ktoś', 'nic', 'nikt', 'każdy', 'który', 'która', 'które',
+    'gdzie', 'kiedy', 'dlaczego', 'ile', 'jakiś', 'jakieś',
+}
 
 class VectorCortex:
     def __init__(self, axes_count):
@@ -214,7 +255,7 @@ class AttentionCortex:
 # ────────────────────────────────────────────────────────────────
 
 class AII:
-    VERSION = "9.8.4"
+    VERSION = "9.9.0"
     AXES_ORDER = UnionConfig.AXES
     DIM = UnionConfig.DIMENSION
 
@@ -235,14 +276,17 @@ class AII:
         self.last_winner_id = None
         self.EMOTION_DECAY = 0.96
         self.MIN_EMOTION_THRESHOLD = 0.005
+        self._interaction_count = 0       # v9.9.0: Licznik interakcji do auto-save
+        self._autosave_interval = 10      # v9.9.0: Auto-save co N interakcji
 
         self.soul_io       = SoulIO()          if SoulIO          else None
         self.lexicon       = EvolvingLexicon() if EvolvingLexicon  else None
         self.chunk_lexicon = ChunkLexicon()    if ChunkLexicon     else None
         self.kurz          = Kurz()            if Kurz             else None
         self.explorer      = WorldExplorer(self) if WorldExplorer  else None
-        self.haiku_gen     = haiku.HaikuGenerator(self)
-        self.fractal_gen   = fractal.FractalGenerator(self) if fractal else None
+        # === WYŁĄCZONE PODSYSTEMY v9.9.0 ===
+        self.haiku_gen     = None   # haiku.HaikuGenerator(self) — WYŁĄCZONY
+        self.fractal_gen   = None   # fractal.FractalGenerator(self) — WYŁĄCZONY
         self.cortex        = VectorCortex(self.DIM)
         self.attention     = AttentionCortex(self)
 
@@ -315,6 +359,46 @@ class AII:
             return text.split('→')[-1].strip()
         return text
 
+    def _store_dialog(self, user_input: str, response: str, emotion_vector=None):
+        """
+        v9.9.0: Centralna metoda zapisu dialogu do pamięci.
+        Naprawia BUG #1 i #2 — wcześniej wiele ścieżek w interact()
+        pomijało zapis do D_Map.
+        """
+        if not user_input or not response:
+            return
+        if self.fractal_memory:
+            try:
+                vec = self.context_vector.tolist()
+                weight = float(min(0.95, 0.5 + np.max(np.abs(self.context_vector)) * 0.5))
+                new_id = self.fractal_memory.store(
+                    content=f"{user_input} → {response[:120]}",
+                    vector=vec,
+                    rec_type="@DIALOG",
+                    weight=weight,
+                    auto_link=True,
+                    auto_parent=True
+                )
+                if self.fractal_horizon and new_id and new_id in self.D_Map:
+                    try:
+                        self.fractal_horizon.sync_from_fractal(self.D_Map[new_id])
+                    except Exception:
+                        pass
+            except Exception as e:
+                print(f"[MEMORY] Błąd store: {e}")
+        self._maybe_autosave()
+
+    def _maybe_autosave(self):
+        """v9.9.0: Automatyczny zapis co N interakcji (BUG #3 fix)."""
+        self._interaction_count += 1
+        if self._interaction_count >= self._autosave_interval:
+            self._interaction_count = 0
+            try:
+                self.save()
+                print(f"{Colors.DIM}[AUTOSAVE] OK{Colors.RESET}")
+            except Exception as e:
+                print(f"[AUTOSAVE] Błąd: {e}")
+
     def _bg_explore(self):
         while True:
             try:
@@ -341,7 +425,7 @@ class AII:
             mod = 0.2 if stripped == '+' else -0.3
             if self.last_winner_id in self.D_Map:
                 old = self.D_Map[self.last_winner_id].get('weight', 0.5)
-                self.D_Map[self.last_winner_id]['weight'] = np.clip(old + mod, 0.1, 1.0)
+                self.D_Map[self.last_winner_id]['weight'] = float(np.clip(old + mod, 0.1, 1.0))
                 status = "Wzmocniono" if mod > 0 else "Osłabiono"
                 print(f"{Colors.CYAN}[RL] {status} (waga: {self.D_Map[self.last_winner_id]['weight']:.2f}){Colors.RESET}")
                 return f"[RL] {status}."
@@ -357,6 +441,7 @@ class AII:
                 resp = random.choice(responses)
                 if random.random() < 0.3:
                     resp += " Jak się masz?"
+                self._maybe_autosave()
                 return resp
 
         self_patterns = [
@@ -371,6 +456,7 @@ class AII:
             resp = self._introspective_response()
             if self.standalone_mode:
                 print(f" [EriAmo] {resp}")
+            self._maybe_autosave()
             return resp
 
         old_vector = self.context_vector.copy()
@@ -403,11 +489,15 @@ class AII:
                     self.quantum.process_interference(time_step=0.1)
                     self._horizon_sync_and_observe(user_input, resp)
                     self._quantum_emotional_update(user_input)
+                    # FIX v9.9.0: Zapamiętaj dialog (wcześniej pomijany — BUG #1)
+                    self._store_dialog(user_input, resp, res['emotional_vector'])
                     return resp
 
             resp = self._clean_resp(chunk_text)
             print(f"{Colors.GREEN}[INSTYNKT]{Colors.RESET} {resp}")
             self._horizon_sync_and_observe(user_input, resp)
+            # FIX v9.9.0: Zapamiętaj dialog z czystego instynktu (BUG #1)
+            self._store_dialog(user_input, resp, res['emotional_vector'])
             return resp
 
         impact = (vec_k * 0.7) + (res['emotional_vector'] * 0.3)
@@ -429,23 +519,8 @@ class AII:
 
         resp = self._resonance_engine(impact, user_input)
 
-        if self.fractal_memory and np.max(np.abs(impact)) > 0.4:
-            try:
-                new_id = self.fractal_memory.store(
-                    content=f"{user_input} → {resp[:120]}",
-                    vector=self.context_vector.tolist(),
-                    rec_type="@DIALOG",
-                    weight=min(0.95, np.max(np.abs(impact)) * 1.2),
-                    auto_link=True,
-                    auto_parent=True
-                )
-                if self.fractal_horizon and new_id and new_id in self.D_Map:
-                    try:
-                        self.fractal_horizon.sync_from_fractal(self.D_Map[new_id])
-                    except Exception:
-                        pass
-            except Exception as e:
-                print(f"[FRACTAL] Błąd store: {e}")
+        # FIX v9.9.0: Zawsze zapisuj dialog (stary próg 0.4 odrzucał większość rozmów — BUG #2)
+        self._store_dialog(user_input, resp, impact)
 
         self._horizon_sync_and_observe(user_input, resp)
         self._quantum_emotional_update(user_input)
@@ -470,7 +545,7 @@ class AII:
                 top_k=1,
                 depth=1.0,
             )
-            if recalled and recalled[0]['resonance'] > 0.08:
+            if recalled and recalled[0]['score'] > 0.08:
                 top = recalled[0]
                 if top['curvature'] < 0.1:
                     depth_label = "rdzeń"
@@ -478,10 +553,10 @@ class AII:
                     depth_label = "środkowy"
                 else:
                     depth_label = "płytki"
-                print(f"{Colors.DIM}[HORYZONT] ∿{top['resonance']:.3f} "
+                print(f"{Colors.DIM}[HORYZONT] ∿{top['score']:.3f} "
                       f"[{depth_label}] {top['content'][:50]}{Colors.RESET}")
             for item in recalled:
-                if item['resonance'] > 0.1:
+                if item['score'] > 0.1:
                     self.fractal_horizon.reinforce(item['id'], factor=0.9)
         except Exception:
             pass
@@ -530,9 +605,7 @@ class AII:
         if not self.quantum or not self.D_Map:
             return None
         self.quantum.sync_from_aii()
-        input_words = set(re.findall(r'\w+', text.lower())) - {
-            'to', 'jest', 'w', 'z', 'na', 'się', 'czy', 'i', 'a', 'o', 'do', 'co', 'jak'
-        }
+        input_words = set(re.findall(r'\w+', text.lower())) - PL_STOPWORDS
         candidates = []
         for mid, entry in self.D_Map.items():
             content = entry.get('tresc', '')
@@ -566,8 +639,7 @@ class AII:
         return self._clean_resp(winner_entry['tresc'])
 
     def _instinct_search(self, chunk_text, emotional_vector, threshold=0.5, raw_input=None):
-        STOPWORDS = {'to', 'jest', 'w', 'z', 'na', 'się', 'czy', 'i', 'a', 'o', 'do',
-                     'co', 'jak', 'że', 'nie', 'ten', 'ta', 'te', 'ty', 'ja', 'on', 'ona'}
+        STOPWORDS = PL_STOPWORDS
         chunk_words = set(re.findall(r'\w+', chunk_text.lower())) - STOPWORDS
         all_words = chunk_words | (set(re.findall(r'\w+', raw_input.lower())) - STOPWORDS if raw_input else set())
         if not all_words:
@@ -643,7 +715,7 @@ class AII:
 
     def _find_memories_for_chunk(self, chunk, vec):
         candidates = []
-        chunk_words = set(chunk.text.lower().split())
+        chunk_words = set(chunk.text.lower().split()) - PL_STOPWORDS
         for mid, entry in self.D_Map.items():
             content = entry.get('tresc', '')
             if content.count('→') >= 2:
@@ -663,15 +735,26 @@ class AII:
         return sorted(candidates, key=lambda x: x[0], reverse=True)
 
     def _resonance_traditional(self, vec, text, threshold=0.15):
-        sig_words = set(re.findall(r'\w+', text.lower())) - {
-            'to', 'jest', 'w', 'z', 'na', 'się', 'czy', 'i', 'a', 'o', 'do'
-        }
+        sig_words = set(re.findall(r'\w+', text.lower())) - PL_STOPWORDS
         candidates = []
+        if not sig_words:
+            # Brak znaczących słów — nie szukaj po tekście, tylko po emocjach
+            if self.quantum and self.D_Map:
+                explored = self._quantum_explore(text)
+                if explored:
+                    return explored
+            dom = self.introspect()
+            if "Neutralny" in dom:
+                return "Hmm... nie wiem jeszcze co o tym myśleć. Powiedz mi więcej."
+            return f"[{dom}] To mnie ciekawi... opowiedz więcej."
         for mid, entry in self.D_Map.items():
             content = entry.get('tresc', '')
             if content.count('→') >= 2:
                 continue
-            score = len(sig_words & set(re.findall(r'\w+', content.lower()))) * 6.5
+            overlap = sig_words & set(re.findall(r'\w+', content.lower()))
+            if not overlap:
+                continue
+            score = len(overlap) * 6.5
             mem_vec = np.array(entry.get('wektor_C_Def', np.zeros(self.DIM)))
             if np.linalg.norm(mem_vec) > 0 and np.linalg.norm(vec) > 0:
                 score += np.dot(vec, mem_vec) * 3.0
@@ -759,7 +842,7 @@ class AII:
             if recalled:
                 lines.append("\n  Najgłębszy rezonans:")
                 for r in recalled:
-                    lines.append(f"    ∿{r['resonance']:.3f} | {r['content'][:50]}")
+                    lines.append(f"    ∿{r['score']:.3f} | {r['content'][:50]}")
             return "\n".join(lines)
 
         elif c == '/introspect':

@@ -1,7 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-main.py v8.6.1-FixedExit
-Naprawiono obsługę komendy /exit (z ukośnikiem).
+main.py v8.6.3
+ZMIANY v8.6.3:
+- FIX: /menuet nie zapisuje duszy podczas kompozycji
+
+ZMIANY v8.6.2:
+- DODANO: obsługa /menuet w terminalu (odpowiednik GUI)
+
+v8.6.1: Naprawiono obsługę komendy /exit (z ukośnikiem).
 """
 
 import sys

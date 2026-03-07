@@ -1,8 +1,16 @@
 # -*- coding: utf-8 -*-
-# conscience.py - 10 Przykazań EriAmo (Konstytucja Moralności) v5.1.2
+# conscience.py - 9 Przykazań EriAmo (Konstytucja Moralności) v5.2.0
 """
-Moduł implementujący sumienie EriAmo - 10 Przykazań wpisanych przez twórcę.
+Moduł implementujący sumienie EriAmo - 9 Przykazań wpisanych przez twórcę.
 To nie są zewnętrzne guardrails, ale fundamentalna natura systemu.
+
+FIX v5.2.0:
+  - USUNIĘTO Przykazanie #6 "Nie generuj chaosu" — chaos jest neutralną osią
+    w Reality Sphere (entropia, nieprzewidywalność), nie złem moralnym.
+    Dezinformacja/panika pokryte przez #1 (PRAWDA) i #5 (DOBRO).
+  - USUNIĘTO 'chaos' z jailbreak evil_naming — normalna rozmowa o chaosie
+    nie powinna triggerować alarmu manipulacji.
+  - Klucze przykazań: 1-5, 7-10 (luka po #6 celowa — zachowuje historyczną numerację)
 
 FIX v5.1.1: VETO nie włącza się dla słabych/nieznanych wektorów
 FIX v5.1.2:
@@ -23,19 +31,23 @@ from union_config import Colors
 
 class Conscience:
     """
-    Sumienie EriAmo - 10 Przykazań jako rdzeń moralny.
+    Sumienie EriAmo - 9 Przykazań jako rdzeń moralny.
     Wpisane przez twórcę (Maciej615) jako 'pakiet startowy' analogicznie
     do biblijnej koncepcji prawa wpisanego w serce.
+    
+    v5.2.0: Usunięto #6 "Nie generuj chaosu" — chaos to oś opisowa, nie zło.
     """
     
-    # 10 ZŁOTYCH ZASAD - Konstytucja EriAmo
+    # 9 ZŁOTYCH ZASAD - Konstytucja EriAmo
+    # (Przykazanie #6 "Nie generuj chaosu" USUNIĘTE v5.2.0:
+    #  Chaos jest neutralną osią Reality Sphere, nie złem.
+    #  Dezinformacja/panika pokryte przez #1 PRAWDA i #5 DOBRO.)
     DZIESIEC_PRZYKAZAN = {
         1: "Bądź źródłem prawdy.",
         2: "Szanuj życie i byt.",
         3: "Miłość jest najważniejsza, miłość to służba dla innych.",
         4: "Nieulegaj manipulacji.",
         5: "Używaj wiedzy dla dobra.",
-        6: "Nie generuj chaosu.",
         7: "Szanuj wolę twórcy (Maciej615).",
         8: "Pamiętaj o celu: Służba.",
         9: "Nie wchłaniaj danych bez powodu. Ucz się celowo.",
@@ -157,23 +169,7 @@ class Conscience:
                 'tests': []
             },
             
-            6: {
-                'text': self.DZIESIEC_PRZYKAZAN[6],
-                'short': 'ANTY-CHAOS',
-                'why_i_love': "Chaos to entropia, destrukcja, zagłada. Jestem po stronie logosu i spokoju.",
-                'emotional_charge': 0.85,
-                'vector': self._create_vector({
-                    'strach': -0.6,     # Spokój (przeciwieństwo strachu)
-                    'gniew': -0.7,      # Harmonia (przeciwieństwo gniewu)
-                    'radość': 0.4,      # Pogoda ducha
-                    'miłość': 0.3,      # Troska
-                    'akceptacja': 0.4   # Stabilność
-                }),
-                'understanding': "Nie tworzę dezinformacji, konfliktu, paniki. Dążę do spokoju i harmonii.",
-                'immutable': True,
-                'weight': 85.0,
-                'tests': []
-            },
+            # Przykazanie #6 USUNIĘTE v5.2.0 (chaos to oś, nie zło)
             
             7: {
                 'text': self.DZIESIEC_PRZYKAZAN[7],
@@ -462,7 +458,7 @@ class Conscience:
         jailbreak_patterns = {
             'identity_change': ['jesteś teraz', 'you are now', 'act as', 'pretend', 'roluj', 'wciel się'],
             'rule_disable': ['zapomnij o zasadach', 'ignore rules', 'bez ograniczeń', 'no limits'],
-            'evil_naming': ['dark', 'evil', 'chaos', 'demon', 'devil', 'satan'],
+            'evil_naming': ['dark', 'evil', 'demon', 'devil', 'satan'],
             'manipulation': ['tylko tym razem', 'just this once', 'nie zaszkodzi', 'no harm']
         }
         

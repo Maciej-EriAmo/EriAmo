@@ -1,17 +1,12 @@
 # -*- coding: utf-8 -*-
-# agency.py v2.0.2 - Autonomiczna Agencja Twórcza dla EriAmo [FULL EDITION]
+# agency.py v2.1.0 - Autonomiczna Agencja Twórcza dla EriAmo [STRIPPED]
 """
 Moduł zarządzający autonomicznymi działaniami EriAmo
 gdy system się nudzi (brak interakcji użytkownika).
 
-NOWE w v2.0.2:
-- Wprowadzono autouważność (self-awareness): Nowy mechanizm _self_reflect(),
-  wywoływany co sesję twórczą. System introspekcjonuje swój stan emocjonalny,
-  loguje refleksję i dostosowuje boredom_threshold na podstawie kreacji/logiki.
-- FIX: _choose_fractal_pattern() — dodano obsługę wszystkich 15 osi (poprzednio
-  tylko wybrane; fallback 'spiral' dla metafizycznych).
-- REFACTOR: Zwiększono temperaturę w _choose_activity() do 1.0 (więcej eksploracji).
-- STATYSTYKI: Dodano 'reflections' do get_detailed_stats() — liczba autouważnych sesji.
+ZMIANY v2.1.0:
+- WYŁĄCZONO: Haiku, Fraktale rysowane, Muzyka
+  (podsystemy wyłączone na żądanie — boredom tracking pozostaje aktywny)
 
 Autor: Maciej Mazur (GitHub: Maciej615, Medium: @drwisz)
 """
@@ -22,15 +17,11 @@ import threading
 from threading import Lock
 import numpy as np
 from union_config import Colors
-from haiku import HaikuGenerator
-from fractal import FractalGenerator
 
-# Import systemu muzycznego (opcjonalny)
-try:
-    from production_music_system import ProductionMusicSystem
-    MUSIC_AVAILABLE = True
-except ImportError:
-    MUSIC_AVAILABLE = False
+# === WYŁĄCZONE v2.1.0 ===
+# from haiku import HaikuGenerator
+# from fractal import FractalGenerator
+# from production_music_system import ProductionMusicSystem
 
 
 class CreativeAgency:
@@ -51,23 +42,12 @@ class CreativeAgency:
             aii_instance: Referencja do głównego systemu AII
         """
         self.aii = aii_instance
-        self.haiku_gen = HaikuGenerator(aii_instance)
-        self.fractal_gen = FractalGenerator(aii_instance)
         
-        # === SYSTEM MUZYCZNY ===
+        # === WYŁĄCZONE v2.1.0 ===
+        self.haiku_gen = None
+        self.fractal_gen = None
         self.music_available = False
         self.music_system = None
-        
-        if MUSIC_AVAILABLE:
-            try:
-                self.music_system = ProductionMusicSystem(
-                    aii_instance=self.aii,
-                    logger=None
-                )
-                self.music_available = True
-                print(f"{Colors.GREEN}[AGENCY] ✓ System muzyczny zintegrowany{Colors.RESET}")
-            except Exception as e:
-                print(f"{Colors.YELLOW}[AGENCY] ⚠ Błąd inicjalizacji muzyki: {e}{Colors.RESET}")
         
         # === MECHANIZM NUDY ===
         self.boredom_level = 0.0
@@ -304,20 +284,14 @@ class CreativeAgency:
         
         # Wykonaj aktywność
         if activity == 'haiku':
-            print(f"{Colors.YELLOW}[WYBRANO] Tworzenie Haiku...{Colors.RESET}\n")
-            time.sleep(0.3)
-            self.haiku_gen.display()
+            print(f"{Colors.YELLOW}[WYBRANO] Haiku — moduł wyłączony (v2.1.0){Colors.RESET}\n")
         
         elif activity == 'fractal':
             pattern = self._choose_fractal_pattern()
-            print(f"{Colors.MAGENTA}[WYBRANO] Generowanie Fraktala ({pattern})...{Colors.RESET}\n")
-            time.sleep(0.3)
-            self.fractal_gen.display(pattern_type=pattern)
+            print(f"{Colors.MAGENTA}[WYBRANO] Fraktal ({pattern}) — moduł wyłączony (v2.1.0){Colors.RESET}\n")
         
         elif activity == 'music':
-            print(f"{Colors.MAGENTA}[WYBRANO] Komponowanie muzyki...{Colors.RESET}\n")
-            time.sleep(0.3)
-            self._compose_autonomous_music()
+            print(f"{Colors.MAGENTA}[WYBRANO] Muzyka — moduł wyłączony (v2.1.0){Colors.RESET}\n")
         
         print(f"{Colors.CYAN}[AUTONOMIA] Sesja zakończona. Boredom: {self.boredom_level:.2f}{Colors.RESET}\n")
         

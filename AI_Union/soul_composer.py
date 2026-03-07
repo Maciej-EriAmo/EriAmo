@@ -1,10 +1,16 @@
-# soul_composer.py v8.2.0 - Quantum Hybrid (15 Axes + Physics)
+# soul_composer.py v8.3.0 - Quantum Hybrid (15 Axes + Physics)
 # -*- coding: utf-8 -*-
 """
 Kompozytor Duszowy EriAmo v8.2.0 [QUANTUM HYBRID]
 Pełna integracja z architekturą 15-osiową oraz fizyką kwantową (QRM).
 
-Zmiany względem v8.1:
+Zmiany v8.3.0:
+- DODANO: compose_menuet() — pełny pipeline z zapisem MIDI
+  (music21 primary, midiutil fallback, txt zawsze)
+- DODANO: _evaluate_menuet() — ewaluacja RL
+- DODANO: _save_with_midiutil() — fallback MIDI bez music21
+
+Zmiany v8.2.0 względem v8.1:
 - Wprowadzono odczyt Pustki (Vacuum) i Dekoherencji Fazowej.
 - Pustka -> Rozciąga czas i zamienia nuty na pauzy (Rests).
 - Dekoherencja -> Rozbija skale, łamie rytm (Atonalność).
@@ -38,6 +44,13 @@ try:
     AUDIO_AVAIL = True
 except ImportError:
     AUDIO_AVAIL = False
+
+# Fallback MIDI bez music21
+try:
+    from midiutil import MIDIFile
+    MIDIUTIL_AVAIL = True
+except ImportError:
+    MIDIUTIL_AVAIL = False
 
 
 class SoulComposerV8:
@@ -361,6 +374,155 @@ class SoulComposerV8:
                 f.write(f"  {k}: {v:.2f}\n")
                 
         return paths
+
+
+    # ============= MENUET — ZAPIS DO MIDI =============
+
+    def compose_menuet(self, key: str = 'C', minor: bool = False, use_nn: bool = True) -> dict:
+        """
+        Komponuje menuet i zapisuje do MIDI.
+        Używa MenuetGeneratorEnhanced jeśli dostępny, inaczej _generate_polyphonic_generic.
+        """
+        import datetime
+        quantum_state = self._get_quantum_state()
+        metrics = self._get_soul_metrics()
+
+        print(f"\n{'='*70}")
+        print(f"KOMPONOWANIE MENUETU ({key} {'moll' if minor else 'dur'})")
+        print(f"{'='*70}")
+        print(f"[EMOCJE] Dominanta: {max(metrics.items(), key=lambda x: x[1])[0].upper()} "
+              f"({max(metrics.values()):.2f})")
+        print(f"[QUANTUM] Vacuum: {quantum_state['vacuum']:.2f} | "
+              f"Coherence: {quantum_state['coherence']:.2f}")
+
+        # Spróbuj użyć MenuetGeneratorEnhanced
+        try:
+            from menuet_generator_enhanced import MenuetGeneratorEnhanced
+            try:
+                from soul_composer_tiny_nn import SoulComposerTinyNN
+                nn = SoulComposerTinyNN()
+            except Exception:
+                nn = None
+            gen = MenuetGeneratorEnhanced(self, nn)
+            data = gen.generate_full_menuet(metrics, quantum_state, use_nn, key, minor)
+        except Exception as e:
+            print(f"[MENUET] Fallback do generatora natywnego: {e}")
+            data = self._generate_polyphonic_generic('MENUET', quantum_state)
+
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        base = f"{self.OUTPUT_DIR}/menuet_{key}{'m' if minor else ''}_{timestamp}"
+        paths = {}
+
+        # Zapis MIDI przez music21
+        if MUSIC21_AVAIL:
+            try:
+                score = self._create_music21_score(data, 'MENUET', 'piano', quantum_state)
+                if score:
+                    midi_path = f"{base}.mid"
+                    score.write('midi', fp=midi_path)
+                    paths['midi'] = midi_path
+                    print(f"[MENUET] MIDI zapisany: {midi_path}")
+                    if AUDIO_AVAIL:
+                        audio = self._render_audio(midi_path)
+                        paths.update(audio)
+            except Exception as e:
+                print(f"[MENUET] music21 błąd: {e}")
+
+        # Fallback: midiutil
+        if 'midi' not in paths and MIDIUTIL_AVAIL:
+            try:
+                midi_path = self._save_with_midiutil(data, base, minor)
+                paths['midi'] = midi_path
+                print(f"[MENUET] MIDI (midiutil) zapisany: {midi_path}")
+            except Exception as e:
+                print(f"[MENUET] midiutil błąd: {e}")
+
+        # Zawsze zapisz txt
+        txt_path = f"{base}.txt"
+        with open(txt_path, 'w', encoding='utf-8') as f:
+            f.write(f"Menuet {key} {'minor' if minor else 'major'}\n")
+            f.write(f"Wygenerowano: {datetime.datetime.now().isoformat()}\n")
+            f.write(f"Quantum: Vacuum {quantum_state['vacuum']:.3f}, "
+                    f"Coherence {quantum_state['coherence']:.3f}\n")
+            f.write(f"Stan emocjonalny:\n")
+            for k, v in sorted(metrics.items(), key=lambda x: -x[1])[:8]:
+                f.write(f"  {k}: {v:.3f}\n")
+            meta = data.get('metadata', {})
+            f.write(f"\nForma: {meta.get('form', 'Menuet')}\n")
+            f.write(f"Takty: {meta.get('measures', len(data['melody']))}\n")
+        paths['txt'] = txt_path
+
+        # Ewaluacja RL
+        print("[RL] Ocena kompozycji...")
+        reward = self._evaluate_menuet(data, metrics, quantum_state)
+        print(f"[RL] Reward: {reward:.3f} | ", end="")
+        if reward > 0.8: print("Doskonała kompozycja", end="")
+        elif reward > 0.6: print("Dobra kompozycja", end="")
+        elif reward > 0.4: print("Przeciętna kompozycja", end="")
+        else: print("Eksperymentalna kompozycja", end="")
+        print(f" (reward: {reward:.3f}).")
+
+        paths['evaluation'] = {'reward': reward}
+        return paths
+
+    def _save_with_midiutil(self, data: dict, base_path: str, minor: bool) -> str:
+        """Zapis MIDI używając midiutil (fallback gdy brak music21)."""
+        midi = MIDIFile(2)  # 2 tracki: melodia + harmonia
+        tempo = 120
+        midi.addTempo(0, 0, tempo)
+        midi.addTempo(1, 0, tempo)
+
+        # Track 0: melodia
+        time = 0.0
+        for measure in data['melody']:
+            for ev in measure:
+                dur = ev.get('duration', 1.0)
+                if ev.get('type') == 'note':
+                    pitch = int(ev['pitch'])
+                    midi.addNote(0, 0, pitch, time, dur, 80)
+                time += dur
+
+        # Track 1: harmonia
+        time = 0.0
+        for measure in data['harmony']:
+            for ev in measure:
+                dur = ev.get('duration', 3.0)
+                if ev.get('type') == 'chord':
+                    pitches = ev['pitch'] if isinstance(ev['pitch'], list) else [ev['pitch']]
+                    for p in pitches:
+                        midi.addNote(1, 0, int(p), time, dur, 60)
+                time += dur
+
+        midi_path = f"{base_path}.mid"
+        with open(midi_path, 'wb') as f:
+            midi.writeFile(f)
+        return midi_path
+
+    def _evaluate_menuet(self, data: dict, metrics: dict, quantum_state: dict) -> float:
+        """Prosta ewaluacja RL menuetu."""
+        score = 0.5  # Bazowy
+
+        # Różnorodność melodyczna
+        pitches = [ev['pitch'] for m in data['melody'] for ev in m if ev.get('type') == 'note']
+        if pitches:
+            unique_ratio = len(set(pitches)) / len(pitches)
+            score += unique_ratio * 0.2
+
+        # Proporcja pauz (Pustka) — nie za dużo
+        rests = sum(1 for m in data['melody'] for ev in m if ev.get('type') == 'rest')
+        notes = len(pitches)
+        if notes + rests > 0:
+            rest_ratio = rests / (notes + rests)
+            score += (0.1 - abs(rest_ratio - 0.1)) * 0.3
+
+        # Koherencja kwantowa = lepsza ocena
+        score += quantum_state.get('coherence', 1.0) * 0.1
+
+        # Emocje pozytywne = bonus
+        score += metrics.get('radość', 0) * 0.05
+        score += metrics.get('kreacja', 0) * 0.05
+
+        return min(1.0, max(0.0, score))
 
 
 if __name__ == "__main__":
