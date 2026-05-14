@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
 """
+EriAmo v5.9 - Interfejs Graficzny
+- Wizualizacja wygaszania emocji
+- Rozróżnienie osi efemerycznych i trwałych
+- Bezpieczna obsługa wątków
+- Dostosowany do płaskiej struktury katalogów (AI_Union root)
 main_gui.py v5.0.6
 ZMIANY v5.0.6:
 - MIDI zapis przez soul_composer.compose_menuet()
