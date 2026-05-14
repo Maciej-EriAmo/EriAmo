@@ -1,78 +1,86 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-main.py PATCH - Dodaje graceful shutdown dla zapisywania unified_memory
+main.py v8.6.3
+ZMIANY v8.6.3:
+- FIX: /menuet nie zapisuje duszy podczas kompozycji
 
-INSTRUKCJA:
-1. Znajdź swój main.py
-2. Dodaj import signal na początku
-3. Dodaj signal handler przed główną pętlą
-4. Zmień pętlę input na try/except KeyboardInterrupt
+ZMIANY v8.6.2:
+- DODANO: obsługa /menuet w terminalu (odpowiednik GUI)
 
-LUB użyj tego pliku jako nowy main.py
+v8.6.1: Naprawiono obsługę komendy /exit (z ukośnikiem).
 """
 
-import signal
 import sys
 import os
+import io
+import time
 
-# Dodaj ścieżki
-current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(current_dir, 'src', 'union'))
-sys.path.insert(0, os.path.join(current_dir, 'src', 'language'))
-sys.path.insert(0, os.path.join(current_dir, 'src', 'music'))
+# --- FIX KODOWANIA ---
+try:
+    if sys.stdin.encoding != 'utf-8':
+        sys.stdin = io.TextIOWrapper(sys.stdin.detach(), encoding='utf-8', errors='replace')
+    if sys.stdout.encoding != 'utf-8':
+        sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8', errors='replace')
+except Exception as e:
+    print(f"[SYSTEM] Ostrzeżenie kodowania: {e}")
 
-from union_core import EriAmoUnion
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-# Globalny reference do union (dla signal handlera)
-union_instance = None
-
-def graceful_shutdown(signum, frame):
-    """Handler dla Ctrl+C - zapisuje stan przed wyjściem"""
-    print("\n\n[SYSTEM] 🛑 Otrzymano sygnał przerwania...")
-    if union_instance:
-        union_instance.stop()  # To wywoła save_all_systems()
-    print("[SYSTEM] ✓ Stan zapisany. Do zobaczenia!")
-    sys.exit(0)
+try:
+    from union_config import UnionConfig, Colors
+    from union_core import EriAmoUnion
+    from multimodal_agency import MultimodalAgency 
+except ImportError as e:
+    print(f"❌ Błąd importu: {e}")
+    sys.exit(1)
 
 def main():
-    global union_instance
+    os.system('cls' if os.name == 'nt' else 'clear')
+    print(f"{Colors.CYAN}🌌 EriAmo Union v8.6.1 - System Gotowy.{Colors.RESET}")
     
-    # Rejestruj signal handler
-    signal.signal(signal.SIGINT, graceful_shutdown)
-    signal.signal(signal.SIGTERM, graceful_shutdown)
+    try:
+        union = EriAmoUnion(verbose=True)
+        agency = MultimodalAgency(union, verbose=True)
+    except Exception as e:
+        print(f"{Colors.RED}❌ Błąd inicjalizacji: {e}{Colors.RESET}")
+        return
     
-    # Inicjalizuj Union
-    union_instance = EriAmoUnion(verbose=True, use_unified_memory=True)
-    union_instance.start()
+    union.start()
+    agency.start()
     
-    print("\n[INFO] Podróżniczka żyje i słucha.")
-    print("[INFO] Pisz w każdej chwili. Naciśnij Ctrl+C, aby zakończyć.\n")
-    
+    print(f"\n{Colors.GREEN}[INFO] System słucha. Wpisz /exit aby zakończyć.{Colors.RESET}\n")
+
     try:
         while True:
             try:
-                cmd = input("Ty > ")
-                
-                if not cmd.strip():
-                    continue
-                    
-                if cmd.lower() in ['exit', 'quit', 'wyjście']:
-                    break
-                
-                union_instance.process_input(cmd)
-                
-            except EOFError:
-                # EOF (Ctrl+D) też powinien zapisać
+                cmd = input(f"{Colors.YELLOW}Ty > {Colors.RESET}")
+            except EOFError: break
+            
+            if not cmd: continue
+            
+            # --- POPRAWKA TUTAJ ---
+            # Teraz łapie exit z ukośnikiem i bez, oraz usuwa spacje
+            clean_cmd = cmd.strip().lower()
+            if clean_cmd in ['exit', 'quit', '/exit', '/quit', 'koniec']:
                 break
+            # ----------------------
                 
+            if hasattr(agency, 'stimulate'):
+                agency.stimulate(cmd)
+
+            response = union.process_input(cmd)
+            
+            if response:
+                print(f" [EriAmo] {response}")
+
     except KeyboardInterrupt:
-        # To jest backup - normalnie powinien złapać signal handler
-        pass
+        print(f"\n{Colors.YELLOW}[SYSTEM] Przerwanie klawiszowe.{Colors.RESET}")
+    except Exception as e:
+        print(f"\n{Colors.RED}[BŁĄD] {e}{Colors.RESET}")
     finally:
-        # Zawsze zapisz przed wyjściem
-        print("\n[SYSTEM] Zamykanie...")
-        union_instance.stop()
+        # Ta sekcja wykona się ZAWSZE przy wyjściu (exit lub Ctrl+C)
+        if 'union' in locals(): union.stop()
+        if 'agency' in locals(): agency.stop()
 
 if __name__ == "__main__":
     main()

@@ -1,0 +1,193 @@
+{
+  "sensors": {
+    "dev_0": {
+      "id": "dev_0",
+      "path": "/sys/class/thermal/thermal_zone2/temp",
+      "type": "thermal",
+      "is_temperature": true,
+      "is_fan": false,
+      "parser": "\ndef read_sensor():\n    try:\n        with open('/sys/class/thermal/thermal_zone2/temp', 'r') as f:\n            return int(f.read().strip()) / 1000.0\n    except: return 0.0\n",
+      "discovered_at": 1770278369.366344
+    },
+    "dev_1": {
+      "id": "dev_1",
+      "path": "/sys/class/thermal/thermal_zone0/temp",
+      "type": "thermal",
+      "is_temperature": true,
+      "is_fan": false,
+      "parser": "\ndef read_sensor():\n    try:\n        with open('/sys/class/thermal/thermal_zone0/temp', 'r') as f:\n            return int(f.read().strip()) / 1000.0\n    except: return 0.0\n",
+      "discovered_at": 1770278369.3664408
+    },
+    "dev_2": {
+      "id": "dev_2",
+      "path": "/sys/class/thermal/thermal_zone5/temp",
+      "type": "thermal",
+      "is_temperature": true,
+      "is_fan": false,
+      "parser": "\ndef read_sensor():\n    try:\n        with open('/sys/class/thermal/thermal_zone5/temp', 'r') as f:\n            return int(f.read().strip()) / 1000.0\n    except: return 0.0\n",
+      "discovered_at": 1770278369.3672853
+    },
+    "dev_3": {
+      "id": "dev_3",
+      "path": "/sys/class/thermal/thermal_zone3/temp",
+      "type": "thermal",
+      "is_temperature": true,
+      "is_fan": false,
+      "parser": "\ndef read_sensor():\n    try:\n        with open('/sys/class/thermal/thermal_zone3/temp', 'r') as f:\n            return int(f.read().strip()) / 1000.0\n    except: return 0.0\n",
+      "discovered_at": 1770278369.3680513
+    },
+    "dev_4": {
+      "id": "dev_4",
+      "path": "/sys/class/thermal/thermal_zone1/temp",
+      "type": "thermal",
+      "is_temperature": true,
+      "is_fan": false,
+      "parser": "\ndef read_sensor():\n    try:\n        with open('/sys/class/thermal/thermal_zone1/temp', 'r') as f:\n            return int(f.read().strip()) / 1000.0\n    except: return 0.0\n",
+      "discovered_at": 1770278369.368279
+    },
+    "dev_5": {
+      "id": "dev_5",
+      "path": "/sys/class/thermal/thermal_zone6/temp",
+      "type": "thermal",
+      "is_temperature": true,
+      "is_fan": false,
+      "parser": "\ndef read_sensor():\n    try:\n        with open('/sys/class/thermal/thermal_zone6/temp', 'r') as f:\n            return int(f.read().strip()) / 1000.0\n    except: return 0.0\n",
+      "discovered_at": 1770278369.3683746
+    },
+    "dev_6": {
+      "id": "dev_6",
+      "path": "/sys/class/thermal/thermal_zone4/temp",
+      "type": "thermal",
+      "is_temperature": true,
+      "is_fan": false,
+      "parser": "\ndef read_sensor():\n    try:\n        with open('/sys/class/thermal/thermal_zone4/temp', 'r') as f:\n            return int(f.read().strip()) / 1000.0\n    except: return 0.0\n",
+      "discovered_at": 1770278369.3701324
+    },
+    "dev_7": {
+      "id": "dev_7",
+      "path": "/sys/class/hwmon/hwmon6/temp3_input",
+      "type": "hwmon",
+      "is_temperature": true,
+      "is_fan": false,
+      "parser": "\ndef read_sensor():\n    try:\n        with open('/sys/class/hwmon/hwmon6/temp3_input', 'r') as f:\n            return int(f.read().strip()) / 1000.0\n    except: return 0.0\n",
+      "discovered_at": 1770278369.3714538
+    },
+    "dev_8": {
+      "id": "dev_8",
+      "path": "/sys/class/hwmon/hwmon6/temp1_input",
+      "type": "hwmon",
+      "is_temperature": true,
+      "is_fan": false,
+      "parser": "\ndef read_sensor():\n    try:\n        with open('/sys/class/hwmon/hwmon6/temp1_input', 'r') as f:\n            return int(f.read().strip()) / 1000.0\n    except: return 0.0\n",
+      "discovered_at": 1770278369.3715897
+    },
+    "dev_9": {
+      "id": "dev_9",
+      "path": "/sys/class/hwmon/hwmon6/temp2_input",
+      "type": "hwmon",
+      "is_temperature": true,
+      "is_fan": false,
+      "parser": "\ndef read_sensor():\n    try:\n        with open('/sys/class/hwmon/hwmon6/temp2_input', 'r') as f:\n            return int(f.read().strip()) / 1000.0\n    except: return 0.0\n",
+      "discovered_at": 1770278369.3716867
+    },
+    "dev_10": {
+      "id": "dev_10",
+      "path": "/sys/class/hwmon/hwmon2/temp1_input",
+      "type": "hwmon",
+      "is_temperature": true,
+      "is_fan": false,
+      "parser": "\ndef read_sensor():\n    try:\n        with open('/sys/class/hwmon/hwmon2/temp1_input', 'r') as f:\n            return int(f.read().strip()) / 1000.0\n    except: return 0.0\n",
+      "discovered_at": 1770278369.37493
+    },
+    "dev_11": {
+      "id": "dev_11",
+      "path": "/sys/class/hwmon/hwmon3/temp3_input",
+      "type": "hwmon",
+      "is_temperature": true,
+      "is_fan": false,
+      "parser": "\ndef read_sensor():\n    try:\n        with open('/sys/class/hwmon/hwmon3/temp3_input', 'r') as f:\n            return int(f.read().strip()) / 1000.0\n    except: return 0.0\n",
+      "discovered_at": 1770278369.3752124
+    },
+    "dev_12": {
+      "id": "dev_12",
+      "path": "/sys/class/hwmon/hwmon3/temp1_input",
+      "type": "hwmon",
+      "is_temperature": true,
+      "is_fan": false,
+      "parser": "\ndef read_sensor():\n    try:\n        with open('/sys/class/hwmon/hwmon3/temp1_input', 'r') as f:\n            return int(f.read().strip()) / 1000.0\n    except: return 0.0\n",
+      "discovered_at": 1770278369.3753247
+    },
+    "dev_13": {
+      "id": "dev_13",
+      "path": "/sys/class/hwmon/hwmon3/temp2_input",
+      "type": "hwmon",
+      "is_temperature": true,
+      "is_fan": false,
+      "parser": "\ndef read_sensor():\n    try:\n        with open('/sys/class/hwmon/hwmon3/temp2_input', 'r') as f:\n            return int(f.read().strip()) / 1000.0\n    except: return 0.0\n",
+      "discovered_at": 1770278369.3754432
+    },
+    "dev_14": {
+      "id": "dev_14",
+      "path": "/sys/class/hwmon/hwmon4/in0_input",
+      "type": "hwmon",
+      "is_temperature": false,
+      "is_fan": false,
+      "parser": "\ndef read_sensor():\n    try:\n        with open('/sys/class/hwmon/hwmon4/in0_input', 'r') as f:\n            return int(f.read().strip()) \n    except: return 0.0\n",
+      "discovered_at": 1770278369.3775263
+    },
+    "dev_15": {
+      "id": "dev_15",
+      "path": "/sys/class/hwmon/hwmon5/in0_input",
+      "type": "hwmon",
+      "is_temperature": false,
+      "is_fan": false,
+      "parser": "\ndef read_sensor():\n    try:\n        with open('/sys/class/hwmon/hwmon5/in0_input', 'r') as f:\n            return int(f.read().strip()) \n    except: return 0.0\n",
+      "discovered_at": 1770278369.3790336
+    },
+    "dev_16": {
+      "id": "dev_16",
+      "path": "/sys/class/hwmon/hwmon1/in0_input",
+      "type": "hwmon",
+      "is_temperature": false,
+      "is_fan": false,
+      "parser": "\ndef read_sensor():\n    try:\n        with open('/sys/class/hwmon/hwmon1/in0_input', 'r') as f:\n            return int(f.read().strip()) \n    except: return 0.0\n",
+      "discovered_at": 1770278369.379595
+    },
+    "dev_17": {
+      "id": "dev_17",
+      "path": "/sys/class/hwmon/hwmon3/fan3_input",
+      "type": "hwmon",
+      "is_temperature": false,
+      "is_fan": true,
+      "parser": "\ndef read_sensor():\n    try:\n        with open('/sys/class/hwmon/hwmon3/fan3_input', 'r') as f:\n            return int(f.read().strip()) \n    except: return 0.0\n",
+      "discovered_at": 1770278369.3804176
+    },
+    "dev_18": {
+      "id": "dev_18",
+      "path": "/sys/class/hwmon/hwmon3/fan4_input",
+      "type": "hwmon",
+      "is_temperature": false,
+      "is_fan": true,
+      "parser": "\ndef read_sensor():\n    try:\n        with open('/sys/class/hwmon/hwmon3/fan4_input', 'r') as f:\n            return int(f.read().strip()) \n    except: return 0.0\n",
+      "discovered_at": 1770278369.3805108
+    },
+    "dev_19": {
+      "id": "dev_19",
+      "path": "/sys/class/hwmon/hwmon3/fan1_input",
+      "type": "hwmon",
+      "is_temperature": false,
+      "is_fan": true,
+      "parser": "\ndef read_sensor():\n    try:\n        with open('/sys/class/hwmon/hwmon3/fan1_input', 'r') as f:\n            return int(f.read().strip()) \n    except: return 0.0\n",
+      "discovered_at": 1770278369.380591
+    },
+    "dev_20": {
+      "id": "dev_20",
+      "path": "/sys/class/hwmon/hwmon3/fan2_input",
+      "type": "hwmon",
+      "is_temperature": false,
+      "is_fan": true,
+      "parser": "\ndef read_sensor():\n    try:\n        with open('/sys/class/hwmon/hwmon3/fan2_input', 'r') as f:\n            return int(f.read().strip()) \n    except: return 0.0\n",
+      "discovered_at": 1770278369.380674
+    }
+  }
+}
