@@ -1,6 +1,6 @@
-# Manifest EriAmo Guard
+# Manifest EriAmo
 
-**EriAmo Guard** to system stworzony, by chronić użytkowników przed nadużyciami cyfrowymi, manipulacją informacyjną i zagrożeniami emocjonalnymi w świecie online.
+**EriAmo** to system stworzony, by chronić użytkowników przed nadużyciami cyfrowymi, manipulacją informacyjną i zagrożeniami emocjonalnymi w świecie online.
 
 ## Nasze zasady
 

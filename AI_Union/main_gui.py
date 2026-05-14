@@ -1,4 +1,3 @@
-# main_gui_v59.py
 # -*- coding: utf-8 -*-
 """
 EriAmo v5.9 - Interfejs Graficzny
@@ -6,557 +5,174 @@ EriAmo v5.9 - Interfejs Graficzny
 - Rozróżnienie osi efemerycznych i trwałych
 - Bezpieczna obsługa wątków
 - Dostosowany do płaskiej struktury katalogów (AI_Union root)
+main_gui.py v5.0.6
+ZMIANY v5.0.6:
+- MIDI zapis przez soul_composer.compose_menuet()
+- FIX: import MultimodalAgency, WM_DELETE_WINDOW, /exit, logi
+
+- ✅ Synchronizacja z v9.8.9: Podgląd Vacuum i Coherence w statusie.
+- ✅ Naprawione filtrowanie: Fraktale v8.0 zostają w terminalu.
+- ✅ Dynamiczna etykieta stanu kwantowego.
 """
-import customtkinter as ctk
+import tkinter as tk
+from tkinter import scrolledtext, ttk
+import sys
 import threading
 import queue
 import os
-import sys
+import re
 
-# WAŻNE: Ustawienie backendu matplotlib PRZED importem
-import matplotlib
-matplotlib.use('Agg')  # Backend bez GUI - zapobiega konfliktom z Tkinter
+try:
+    from multimodal_agency import MultimodalAgency
+except ImportError:
+    MultimodalAgency = None
 
-from amocore import EriAmoCore, SoulStateLogger, AXES_LIST, EPHEMERAL_AXES
-from music_analyzer import MusicAnalyzer
-from soul_composer import SoulComposerV59
-from data_loader import ExternalKnowledgeLoader
-from genre_definitions import list_genres
+class SelectiveRedirector:
+    def __init__(self, gui_queue):
+        self.queue = gui_queue
+        self.terminal = sys.__stdout__
 
-# Dark mode
-ctk.set_appearance_mode("Dark")
-ctk.set_default_color_theme("dark-blue")
-
-
-class EriAmoBrain(threading.Thread):
-    """
-    Wątek logiczny (backend).
-    Wszystkie operacje I/O i obliczenia wykonywane są tutaj,
-    żeby nie blokować GUI.
-    """
-    
-    def __init__(self, core, cmd_queue, resp_queue):
-        super().__init__(daemon=True)
-        self.core = core
-        self.cmd_queue = cmd_queue
-        self.resp_queue = resp_queue
-        self.running = True
-        
-        # Lazy initialization - nie importuj wizualizera od razu
-        self.logger = SoulStateLogger()
-        self.analyzer = MusicAnalyzer(core, self.logger)
-        self.composer = SoulComposerV59(core, self.logger)
-        self.loader = None  # Lazy load
-        self.visualizer = None  # Lazy load
-
-    def _get_loader(self):
-        """Lazy initialization loadera."""
-        if self.loader is None:
-            self.loader = ExternalKnowledgeLoader()
-        return self.loader
-
-    def _get_visualizer(self):
-        """Lazy initialization wizualizera."""
-        if self.visualizer is None:
-            from visualizer import SoulVisualizerV59
-            self.visualizer = SoulVisualizerV59()
-        return self.visualizer
-
-    def run(self):
-        self.core.log("[SYSTEM] Wątek Mózgu: Aktywny", "CYAN")
-        
-        while self.running:
-            try:
-                task = self.cmd_queue.get(timeout=0.5)
-                cmd_type = task['type']
-                
-                if cmd_type == 'STOP':
-                    self.running = False
-                    break
-                
-                elif cmd_type == 'ANALYZE':
-                    self._handle_analyze(task)
-                
-                elif cmd_type == 'COMPOSE':
-                    self._handle_compose(task)
-                
-                elif cmd_type == 'REPORT':
-                    self._handle_report()
-                
-                elif cmd_type == 'DECAY':
-                    cycles = task.get('cycles', 1)
-                    self.core.apply_emotion_decay(cycles)
-                    self.resp_queue.put({"status": "LOG", "msg": f"Wygaszanie: {cycles} cykli"})
-                
-                # Zawsze aktualizuj stan po operacji
-                self.send_soul_update()
-                
-            except queue.Empty:
-                continue
-            except Exception as e:
-                import traceback
-                self.resp_queue.put({
-                    "status": "ERROR", 
-                    "msg": f"Błąd: {e}\n{traceback.format_exc()}"
-                })
-
-    def _handle_analyze(self, task):
-        """Obsługa analizy utworu."""
-        title = task['title']
-        features = list(task['features'])  # Kopia
-        
-        if task.get('artist'):
-            try:
-                loader = self._get_loader()
-                web_features = loader.get_context_from_web(task['artist'], title)
-                features.extend(web_features)
-            except Exception as e:
-                self.resp_queue.put({"status": "LOG", "msg": f"Web: {e}"})
-        
-        mode = "!teach" if task['mode'] == 'full' else "!simulate"
-        self.analyzer.analyze_and_shift(features, title, mode=mode)
-        self.resp_queue.put({"status": "LOG", "msg": f"Analiza: {title}"})
-
-    def _handle_compose(self, task):
-        """Obsługa kompozycji."""
-        genre = task['genre']
-        instrument = task.get('instrument', None)  # Opcjonalny instrument
-        try:
-            paths = self.composer.compose_new_work(genre, instrument_override=instrument)
-            self.resp_queue.put({
-                "status": "SUCCESS", 
-                "msg": f"Skomponowano {genre}!" + (f" ({instrument})" if instrument else ""), 
-                "data": paths
-            })
-        except Exception as e:
-            self.resp_queue.put({"status": "ERROR", "msg": str(e)})
-
-    def _handle_report(self):
-        """Obsługa generowania raportu."""
-        try:
-            vis = self._get_visualizer()
-            paths = vis.create_complete_report()
-            self.resp_queue.put({"status": "REPORT_READY", "paths": paths})
-        except Exception as e:
-            self.resp_queue.put({"status": "ERROR", "msg": f"Raport: {e}"})
-
-    def send_soul_update(self):
-        """Wysyła aktualny stan do GUI."""
-        try:
-            vec = self.core.get_vector_copy()
-            vector_dict = {AXES_LIST[i]: vec[i] for i in range(len(AXES_LIST))}
-            decay_status = self.core.get_decay_status()
-            self.resp_queue.put({
-                "status": "UPDATE_VECTORS", 
-                "data": vector_dict,
-                "decay": decay_status
-            })
-        except Exception as e:
-            print(f"[WARN] send_soul_update: {e}")
-
-
-class EriAmoApp(ctk.CTk):
-    """Główne okno aplikacji."""
-    
-    def __init__(self):
-        super().__init__()
-        
-        self.title("EriAmo v5.9 - Soul Interface")
-        self.geometry("1150x700")
-        
-        # Kolejki komunikacyjne
-        self.cmd_queue = queue.Queue()
-        self.resp_queue = queue.Queue()
-        
-        # Inicjalizacja rdzenia (w głównym wątku)
-        self.core = EriAmoCore()
-        
-        # Start wątku roboczego
-        self.brain = EriAmoBrain(self.core, self.cmd_queue, self.resp_queue)
-        self.brain.start()
-        
-        # Buduj UI
-        self._init_ui()
-        
-        # Start pętli GUI
-        self._gui_loop_id = None
-        self._start_gui_loop()
-        
-        # Początkowy stan
-        self.after(100, lambda: self.brain.send_soul_update())
-
-    def _init_ui(self):
-        """Buduje interfejs użytkownika."""
-        self.grid_columnconfigure(1, weight=1)
-        self.grid_rowconfigure(0, weight=1)
-        
-        # === LEWY PANEL - WEKTORY ===
-        self._build_left_panel()
-        
-        # === PRAWY PANEL - AKCJE ===
-        self._build_right_panel()
-
-    def _build_left_panel(self):
-        """Panel z wektorami duszy."""
-        self.frame_left = ctk.CTkFrame(self, width=270, corner_radius=0)
-        self.frame_left.grid(row=0, column=0, sticky="nswe")
-        self.frame_left.grid_propagate(False)
-        
-        # Logo
-        lbl_logo = ctk.CTkLabel(
-            self.frame_left, 
-            text="ERIAMO v5.9", 
-            font=ctk.CTkFont(size=20, weight="bold")
-        )
-        lbl_logo.grid(row=0, column=0, padx=20, pady=(15, 3))
-        
-        # Subtitle
-        lbl_sub = ctk.CTkLabel(
-            self.frame_left,
-            text="Efemeryczne | Trwale",
-            font=ctk.CTkFont(size=9),
-            text_color="gray"
-        )
-        lbl_sub.grid(row=1, column=0, padx=20, pady=(0, 10))
-        
-        # Paski wektorów
-        self.vector_bars = {}
-        self.vector_labels = {}
-        
-        for i, axis in enumerate(AXES_LIST):
-            prefix = "[E]" if axis in EPHEMERAL_AXES else "[T]"
-            
-            lbl = ctk.CTkLabel(
-                self.frame_left, 
-                text=f"{prefix} {axis.upper()}: 0.0", 
-                anchor="w",
-                font=ctk.CTkFont(size=10)
-            )
-            lbl.grid(row=i*2+2, column=0, padx=20, pady=(6, 0), sticky="w")
-            
-            pbar = ctk.CTkProgressBar(self.frame_left, width=210, height=10)
-            pbar.grid(row=i*2+3, column=0, padx=20, pady=(2, 0))
-            pbar.set(0.5)
-            
-            # Kolory według typu osi
-            if axis in EPHEMERAL_AXES:
-                pbar.configure(progress_color="#7f8c8d")  # Szary
-            elif axis == 'affections':
-                pbar.configure(progress_color="#9b59b6")  # Fioletowy
-            elif axis == 'etyka':
-                pbar.configure(progress_color="#27ae60")  # Zielony
-            elif axis in ['logika', 'wiedza']:
-                pbar.configure(progress_color="#3498db")  # Niebieski
-            else:
-                pbar.configure(progress_color="#e67e22")  # Pomarańczowy
-            
-            self.vector_bars[axis] = pbar
-            self.vector_labels[axis] = lbl
-        
-        # Przycisk Decay
-        btn_decay = ctk.CTkButton(
-            self.frame_left, 
-            text="Wygas emocje (1 cykl)",
-            command=self._send_decay,
-            fg_color="#7f8c8d",
-            hover_color="#95a5a6",
-            height=30,
-            font=ctk.CTkFont(size=11)
-        )
-        btn_decay.grid(row=len(AXES_LIST)*2+4, column=0, padx=20, pady=(15, 10))
-
-    def _build_right_panel(self):
-        """Panel z zakładkami akcji."""
-        self.frame_right = ctk.CTkFrame(self)
-        self.frame_right.grid(row=0, column=1, sticky="nswe", padx=15, pady=15)
-        
-        self.tabview = ctk.CTkTabview(self.frame_right)
-        self.tabview.pack(fill="both", expand=True)
-        
-        # Zakładki
-        self.tab_analyze = self.tabview.add("NAUKA")
-        self.tab_compose = self.tabview.add("KOMPOZYCJA")
-        self.tab_logs = self.tabview.add("LOG")
-        
-        self._setup_analyze_tab()
-        self._setup_compose_tab()
-        self._setup_logs_tab()
-
-    def _setup_analyze_tab(self):
-        """Zakładka nauki/analizy."""
-        frame = ctk.CTkFrame(self.tab_analyze, fg_color="transparent")
-        frame.pack(fill="both", expand=True, padx=10, pady=10)
-        
-        self.entry_artist = ctk.CTkEntry(
-            frame, 
-            placeholder_text="Artysta (np. Chopin, Metallica)",
-            height=35
-        )
-        self.entry_artist.pack(pady=8, fill="x")
-        
-        self.entry_title = ctk.CTkEntry(
-            frame, 
-            placeholder_text="Tytul utworu / Opis zdarzenia",
-            height=35
-        )
-        self.entry_title.pack(pady=8, fill="x")
-        
-        self.entry_features = ctk.CTkEntry(
-            frame, 
-            placeholder_text="Cechy (np. FUGA LAMENTOSO PRESTO)",
-            height=35
-        )
-        self.entry_features.pack(pady=8, fill="x")
-        
-        # Przyciski
-        btn_frame = ctk.CTkFrame(frame, fg_color="transparent")
-        btn_frame.pack(pady=15)
-        
-        btn_teach = ctk.CTkButton(
-            btn_frame, 
-            text="[T] NAUCZ (trwaly wplyw)", 
-            command=lambda: self._send_analyze('full'),
-            fg_color="#9b59b6",
-            width=180
-        )
-        btn_teach.pack(side="left", padx=8)
-        
-        btn_sim = ctk.CTkButton(
-            btn_frame, 
-            text="[E] SYMULUJ (0.1x)", 
-            command=lambda: self._send_analyze('sim'),
-            fg_color="transparent", 
-            border_width=2,
-            width=150
-        )
-        btn_sim.pack(side="left", padx=8)
-        
-        # Info
-        info = ctk.CTkLabel(
-            frame, 
-            text="[E] Emocje wygasaja z czasem\n[T] Affections pozostaja jako pamieci gleboka",
-            text_color="gray",
-            font=ctk.CTkFont(size=11)
-        )
-        info.pack(pady=20)
-
-    def _setup_compose_tab(self):
-        """Zakładka kompozycji."""
-        frame = ctk.CTkFrame(self.tab_compose, fg_color="transparent")
-        frame.pack(fill="both", expand=True, padx=10, pady=10)
-        
-        lbl = ctk.CTkLabel(
-            frame, 
-            text="Wybierz gatunek:", 
-            font=ctk.CTkFont(size=14)
-        )
-        lbl.pack(pady=15)
-        
-        self.genre_var = ctk.StringVar(value="BLUES")
-        genres = list_genres()
-        
-        self.combo_genre = ctk.CTkComboBox(
-            frame, 
-            values=genres, 
-            variable=self.genre_var,
-            width=220
-        )
-        self.combo_genre.pack(pady=10)
-        
-        # NOWOŚĆ: Wybór instrumentu
-        lbl_instr = ctk.CTkLabel(
-            frame,
-            text="Instrument (opcjonalnie):",
-            font=ctk.CTkFont(size=12)
-        )
-        lbl_instr.pack(pady=(15, 5))
-        
-        instruments = ["Auto", "PIANO", "ORGAN", "GUITAR", "DISTORTION", "BASS",
-                      "STRINGS", "CHOIR", "TRUMPET", "BRASS", "SAX", 
-                      "FLUTE", "PAD", "SYNTH", "SITAR"]
-        self.instrument_var = ctk.StringVar(value="Auto")
-        
-        self.combo_instrument = ctk.CTkComboBox(
-            frame,
-            values=instruments,
-            variable=self.instrument_var,
-            width=220
-        )
-        self.combo_instrument.pack(pady=5)
-        
-        btn_compose = ctk.CTkButton(
-            frame, 
-            text="KOMPONUJ", 
-            height=45, 
-            font=ctk.CTkFont(size=13, weight="bold"),
-            command=self._send_compose,
-            fg_color="#9b59b6",
-            width=200
-        )
-        btn_compose.pack(pady=25)
-        
-        btn_report = ctk.CTkButton(
-            frame, 
-            text="Generuj raport wizualny", 
-            fg_color="#e67e22",
-            command=self._send_report,
-            width=200
-        )
-        btn_report.pack(pady=10)
-
-    def _setup_logs_tab(self):
-        """Zakładka logów."""
-        self.textbox_log = ctk.CTkTextbox(
-            self.tab_logs, 
-            font=ctk.CTkFont(family="Consolas", size=11)
-        )
-        self.textbox_log.pack(fill="both", expand=True, padx=10, pady=10)
-        self.textbox_log.insert("0.0", "=== EriAmo v5.9 Log ===\n")
-        self.textbox_log.insert("end", "[E] efemeryczne (wygasaja)\n")
-        self.textbox_log.insert("end", "[T] trwale (pamiec gleboka)\n\n")
-
-    # === PETLA GUI ===
-    
-    def _start_gui_loop(self):
-        """Uruchamia pętlę sprawdzającą odpowiedzi."""
-        self._process_responses()
-        self._gui_loop_id = self.after(150, self._start_gui_loop)
-
-    def _process_responses(self):
-        """Przetwarza odpowiedzi z wątku roboczego."""
-        try:
-            for _ in range(10):  # Max 10 wiadomości na raz
-                msg = self.resp_queue.get_nowait()
-                self._handle_message(msg)
-        except queue.Empty:
-            pass
-
-    def _handle_message(self, msg):
-        """Obsługuje pojedynczą wiadomość."""
-        status = msg.get('status', '')
-        
-        if status == "UPDATE_VECTORS":
-            self._update_vectors(msg['data'])
-        
-        elif status == "LOG":
-            self._log(f"[INFO] {msg['msg']}")
-        
-        elif status == "SUCCESS":
-            self._log(f"[OK] {msg['msg']}")
-            if msg.get('data', {}).get('txt'):
-                self._log(f"   Plik: {msg['data']['txt']}")
-        
-        elif status == "REPORT_READY":
-            self._log("[RAPORT] Gotowy")
-            paths = msg.get('paths', {})
-            if paths.get('basic'):
-                self._log(f"   {paths['basic']}")
-                # Otwórz w przeglądarce
-                try:
-                    import webbrowser
-                    webbrowser.open('file://' + os.path.abspath(paths['basic']))
-                except Exception:
-                    pass
-        
-        elif status == "ERROR":
-            self._log(f"[BLAD] {msg['msg']}")
-
-    def _update_vectors(self, data):
-        """Aktualizuje paski wektorów."""
-        for axis, val in data.items():
-            if axis in self.vector_bars:
-                # Normalizacja -30..30 -> 0..1
-                norm = 0.5 + (val / 60.0)
-                norm = max(0.0, min(1.0, norm))
-                self.vector_bars[axis].set(norm)
-                
-                prefix = "[E]" if axis in EPHEMERAL_AXES else "[T]"
-                self.vector_labels[axis].configure(
-                    text=f"{prefix} {axis.upper()}: {val:+.1f}"
-                )
-
-    def _log(self, text):
-        """Dodaje tekst do logu."""
-        self.textbox_log.insert("end", f"{text}\n")
-        self.textbox_log.see("end")
-
-    # === WYSYLANIE KOMEND ===
-    
-    def _send_analyze(self, mode):
-        """Wysyła komendę analizy."""
-        title = self.entry_title.get().strip()
-        if not title:
-            self._log("BLAD: Podaj tytul!")
+    def write(self, string):
+        self.terminal.write(string)
+        # Filtrujemy fraktale i ruminacje, by nie psuły formatowania w małym GUI
+        if any(x in string for x in ["FRACTAL", "---", "===", "∠", "Vacuum:", "Koherencja:"]):
             return
-        
-        artist = self.entry_artist.get().strip()
-        feats = self.entry_features.get().strip().split()
-        
-        self.cmd_queue.put({
-            'type': 'ANALYZE',
-            'title': title,
-            'artist': artist,
-            'features': feats,
-            'mode': mode
-        })
-        self._log(f"Wyslano: {title}...")
+        if string.strip():
+            stripped = string.strip()
+            if stripped.startswith("[") and not string.startswith("\n"):
+                string = "\n" + string
+            self.queue.put(("TEXT", string))
 
-    def _send_compose(self):
-        """Wysyła komendę kompozycji."""
-        genre = self.genre_var.get()
-        instrument = self.instrument_var.get()
-        
-        # "Auto" oznacza brak wybranego instrumentu
-        if instrument == "Auto":
-            instrument = None
-        
-        self.cmd_queue.put({
-            'type': 'COMPOSE', 
-            'genre': genre,
-            'instrument': instrument
-        })
-        
-        msg = f"Komponuje: {genre}"
-        if instrument:
-            msg += f" ({instrument})"
-        self._log(msg + "...")
+    def flush(self): self.terminal.flush()
 
-    def _send_report(self):
-        """Wysyła komendę raportu."""
-        self.cmd_queue.put({'type': 'REPORT'})
-        self._log("Generuje raport...")
+class EriAmoGUI:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("EriAmo Union v9.8.9 [Quantum Hybrid]")
+        self.root.geometry("1000x850")
+        self.root.configure(bg="#0a0a0a")
+        self.msg_queue = queue.Queue()
+        self.is_closing = False
+        
+        self.color_map = {'96': '#00f0ff', '92': '#00ff00', '93': '#ffff00', '95': '#ff00ff', '91': '#ff4444', '0': '#ddd'}
+        
+        self.init_backend()
+        self.create_widgets()
+        
+        sys.stdout = SelectiveRedirector(self.msg_queue)
+        self.root.after(100, self.update_loop)
 
-    def _send_decay(self):
-        """Wysyła komendę wygaszania."""
-        self.cmd_queue.put({'type': 'DECAY', 'cycles': 1})
-        self._log("Wygaszanie emocji...")
+    def init_backend(self):
+        try:
+            from union_core import EriAmoUnion
+            self.union = EriAmoUnion(verbose=True)
+            if MultimodalAgency:
+                self.agency = MultimodalAgency(self.union, verbose=True)
+                self.agency.start()
+            else:
+                self.agency = None
+                print("[GUI] MultimodalAgency niedostępna")
+            self.union.start()
+        except Exception as e: print(f"Błąd startu: {e}")
 
-    # === ZAMYKANIE ===
-    
+    def create_widgets(self):
+        # Header z danymi kwantowymi
+        self.header = tk.Frame(self.root, bg="#111", height=40)
+        self.header.pack(fill=tk.X)
+        
+        self.q_label = tk.Label(self.header, text="Quantum: Strumień nieaktywny", 
+                                bg="#111", fg="#00f0ff", font=("Consolas", 10))
+        self.q_label.pack(side=tk.LEFT, padx=20)
+
+        # Chat
+        self.console_log = scrolledtext.ScrolledText(self.root, bg="#050505", fg="#bbb", 
+                                                    font=("Consolas", 12), borderwidth=0)
+        self.console_log.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+        
+        for code, hex_color in self.color_map.items():
+            self.console_log.tag_config(code, foreground=hex_color)
+        self.console_log.tag_config("USER", foreground="#00ffaa", font=("Consolas", 12, "bold"))
+
+        # Input
+        self.entry = tk.Entry(self.root, bg="#151515", fg="#fff", font=("Consolas", 13), 
+                             borderwidth=0, insertbackground="white")
+        self.entry.pack(fill=tk.X, padx=20, pady=20, ipady=12)
+        self.entry.bind("<Return>", self.send_command)
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+    def update_loop(self):
+        while not self.msg_queue.empty():
+            _, data = self.msg_queue.get_nowait()
+            self.append_text(data)
+        
+        # Aktualizacja statusu kwantowego w nagłówku GUI
+        if not self.is_closing:
+            try:
+                q = self.union.aii.quantum
+                vac = abs(q.state.amplitudes['vacuum'])**2
+                coh = q.get_phase_coherence()
+                self.q_label.config(text=f"Vacuum: {vac:.2f} | Koherencja: {coh:.2f} | Status: Stabilny")
+            except: pass
+        self.root.after(500, self.update_loop)
+
+    def append_text(self, text, tag=None):
+        ansi_regexp = re.compile(r'\x1b\[([0-9;]*)m')
+        parts = ansi_regexp.split(text)
+        current_tag = tag
+        for i, part in enumerate(parts):
+            if i % 2 == 0:
+                if part: self.console_log.insert(tk.END, part, current_tag)
+            else:
+                code = part.split(';')[-1] # Obsługa złożonych kodów
+                if code in self.color_map: current_tag = code
+                elif code == "0": current_tag = tag
+        self.console_log.see(tk.END)
+
+    def send_command(self, event=None):
+        cmd = self.entry.get().strip()
+        if not cmd: return
+        self.entry.delete(0, tk.END)
+        self.append_text(f"\nTy > {cmd}\n", "USER")
+        if cmd.strip().lower() == "/exit":
+            self.on_closing()
+            return
+        if cmd.strip().lower() == "/menuet":
+            def play_menuet():
+                try:
+                    import random
+                    from soul_composer import SoulComposerV8
+                    composer = SoulComposerV8(self.union.aii)
+                    emotions = self.union.aii.get_emotions()
+                    dominant = max(emotions.items(), key=lambda x: x[1])
+                    is_minor = emotions.get("smutek", 0) > 0.4
+                    key = random.choice(["C", "G", "D", "F"])
+                    result = composer.compose_menuet(key=key, minor=is_minor, use_nn=True)
+                    reward = result.get("evaluation", {}).get("reward", 0.0)
+                    midi = result.get("midi", "brak")
+                    tone = "moll" if is_minor else "dur"
+                    self.msg_queue.put(("TEXT",
+                        f" [MENUET] Skomponowano w {key} {tone}"
+                        f" (dominanta: {dominant[0]}, reward: {reward:.3f})\n"
+                        f" [MENUET] Plik: {midi}\n"))
+                except Exception as e:
+                    self.msg_queue.put(("TEXT", f" [MENUET] Błąd: {e}\n"))
+            threading.Thread(target=play_menuet, daemon=True).start()
+            return
+        if self.agency: self.agency.stimulate(cmd)  # Reset nudy
+        def run_and_display():
+            resp = self.union.process_input(cmd)
+            if resp:
+                self.msg_queue.put(("TEXT", f" [EriAmo] {resp}\n"))
+        threading.Thread(target=run_and_display, daemon=True).start()
+
     def on_closing(self):
-        """Bezpieczne zamknięcie aplikacji."""
-        # Zatrzymaj pętlę GUI
-        if self._gui_loop_id:
-            self.after_cancel(self._gui_loop_id)
-        
-        # Zatrzymaj wątek roboczy
-        self.cmd_queue.put({'type': 'STOP'})
-        self.brain.join(timeout=2.0)
-        
-        # Zamknij okno
-        self.destroy()
-
-
-def main():
-    """Punkt wejścia."""
-    app = EriAmoApp()
-    app.protocol("WM_DELETE_WINDOW", app.on_closing)
-    
-    try:
-        app.mainloop()
-    except KeyboardInterrupt:
-        app.on_closing()
-
+        self.is_closing = True
+        if self.agency: self.agency.stop()
+        self.union.stop()
+        self.root.destroy()
+        sys.exit(0)
 
 if __name__ == "__main__":
-    main()
+    root = tk.Tk()
+    app = EriAmoGUI(root)
+    root.mainloop()

@@ -1,226 +1,261 @@
-# -*- coding: utf-8 -*-
 """
-union_config.py v1.0.0
-EriAmo Union - Configuration
+EriAmo Union - Centralna Konfiguracja
+======================================
+SINGLE SOURCE OF TRUTH dla wszystkich definicji osi i konfiguracji systemu.
 
-Centralized configuration for Union system.
+Wszystkie moduły MUSZĄ importować definicje stąd:
+    from union_config import UnionConfig, AXES, DIMENSION, Colors
 """
 
 import os
+from typing import List, Dict, Set
+from pathlib import Path
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DEFINICJE OSI - SINGLE SOURCE OF TRUTH
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Główna lista 15 osi (8 biologicznych + 7 metafizycznych)
+AXES: List[str] = [
+    # Biologiczne (Plutchik) - indeksy 0-7
+    'radość', 'smutek', 'strach', 'gniew',
+    'miłość', 'wstręt', 'zaskoczenie', 'akceptacja',
+    # Metafizyczne - indeksy 8-14
+    'logika', 'wiedza', 'czas', 'kreacja',
+    'byt', 'przestrzeń', 'chaos'
+]
+
+# Wymiarowość
+DIMENSION: int = len(AXES)  # Automatycznie z AXES – bezpieczniej
+BIO_DIM: int = 8    # Wymiary biologiczne (emocje Plutchika)
+META_DIM: int = DIMENSION - BIO_DIM   # Automatycznie
+
+# Podział funkcjonalny
+BIO_AXES: List[str] = AXES[:BIO_DIM]   # Emocje biologiczne
+META_AXES: List[str] = AXES[BIO_DIM:]  # Wymiary metafizyczne
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# KLASYFIKACJA OSI DLA SYSTEMU MUZYCZNEGO
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Osie efemeryczne - szybko wygasające stany emocjonalne
+EPHEMERAL_AXES: List[str] = [
+    'radość', 'smutek', 'strach', 'gniew', 'zaskoczenie'
+]
+
+# Osie trwałe - stabilne cechy i preferencje
+PERSISTENT_AXES: List[str] = [
+    'miłość', 'wstręt', 'akceptacja',
+    'logika', 'wiedza', 'kreacja', 'byt', 'przestrzeń'
+]
+
+# Osie dynamiczne - zmienne w czasie
+DYNAMIC_AXES: List[str] = ['czas', 'chaos']
+
+# Walidacja: Upewnij się, że wszystkie osie są pokryte
+all_classified = set(EPHEMERAL_AXES + PERSISTENT_AXES + DYNAMIC_AXES)
+assert all_classified == set(AXES), f"Błąd: Nie wszystkie osie sklasyfikowane! Brakujące: {set(AXES) - all_classified}"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# KOLORY TERMINALA
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class Colors:
+    """Kolory ANSI dla terminala."""
+    HEADER = '\033[95m'
+    BLUE = '\033[94m'
+    CYAN = '\033[96m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    MAGENTA = '\033[35m'
+    WHITE = '\033[97m'
+    BOLD = '\033[1m'
+    DIM = '\033[2m'
+    UNDERLINE = '\033[4m'
+    RESET = '\033[0m'  # Alias dla kompatybilności (usunąłem duplikat END)
+    FAINT = DIM  # Alias kompatybilności — niektóre moduły używają FAINT zamiast DIM
+    END = RESET  # Alias kompatybilności
+    
+    # Aliasy dla emocji – mapa na wszystkie osie
+    AXIS_COLORS = {
+        'radość': GREEN,
+        'smutek': BLUE,
+        'strach': MAGENTA,
+        'gniew': RED,
+        'miłość': '\033[38;5;213m',  # Różowy
+        'wstręt': '\033[38;5;58m',   # Oliwkowy
+        'zaskoczenie': YELLOW,
+        'akceptacja': CYAN,
+        'logika': WHITE,
+        'wiedza': '\033[38;5;214m',  # Pomarańczowy
+        'czas': DIM,
+        'kreacja': '\033[38;5;27m',  # Niebieski kreatywny
+        'byt': '\033[38;5;136m',     # Brązowy
+        'przestrzeń': '\033[38;5;69m',  # Niebiesko-zielony
+        'chaos': '\033[38;5;196m'    # Ciemny czerwony
+    }
+    
+    @classmethod
+    def get_for_axis(cls, axis: str) -> str:
+        """Zwraca kolor dla danej osi (fallback na WHITE)."""
+        return cls.AXIS_COLORS.get(axis, cls.WHITE)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# GŁÓWNA KLASA KONFIGURACJI
+# ═══════════════════════════════════════════════════════════════════════════════
 
 class UnionConfig:
     """
-    Centralized configuration for EriAmo Union.
+    Centralna konfiguracja systemu EriAmo Union.
     
-    Modify these values to customize Union behavior.
+    Użycie:
+        from union_config import UnionConfig
+        
+        print(UnionConfig.AXES)      # Atrybut klasowy
+        print(UnionConfig.DIMENSION) # Atrybut klasowy
     """
     
-    # =========================================================================
-    # VERSION & META
-    # =========================================================================
+    # === OSIE (atrybuty KLASOWE - dostępne bez instancji) ===
+    AXES = AXES
+    DIMENSION = DIMENSION
+    BIO_DIM = BIO_DIM
+    META_DIM = META_DIM
     
-    VERSION = "1.0.0-Phase1"
-    PHASE = "Phase 1 - Basic Routing"
+    BIO_AXES = BIO_AXES
+    META_AXES = META_AXES
     
-    # =========================================================================
-    # FILE PATHS
-    # =========================================================================
+    EPHEMERAL_AXES = EPHEMERAL_AXES
+    PERSISTENT_AXES = PERSISTENT_AXES
+    DYNAMIC_AXES = DYNAMIC_AXES
     
-    # Language soul files
-    LANGUAGE_SOUL_FILE = "eriamo.soul"
-    LANGUAGE_LEXICON_FILE = "lexicon.soul"
+    # Alias dla kompatybilności wstecznej
+    AXES_LIST = AXES
     
-    # Music soul files
-    MUSIC_HISTORY_FILE = "data/soul_history.csv"
-    MUSIC_DUMPS_DIR = "data/dumps"
+    # === ŚCIEŻKI ===
+    BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
+    SOUL_DIR = BASE_DIR / "souls"
+    MUSIC_DIR = BASE_DIR / "music"
+    LOGS_DIR = BASE_DIR / "logs"
     
-    # Union soul file (Phase 3)
-    UNION_SOUL_FILE = "data/union_soul/unified.soul"
+    # === PAMIĘĆ ===
+    MEMORY_DECAY = 0.95
+    EMOTION_DECAY = 0.85
+    MAX_MEMORY_SIZE = 10000
     
-    # =========================================================================
-    # BEHAVIOR SETTINGS
-    # =========================================================================
+    # === MUZYKA ===
+    DEFAULT_BPM = 120
+    DEFAULT_SOUNDFONT = "FluidR3_GM.sf2"
     
-    # General
-    VERBOSE = True  # Print detailed logs
-    LANGUAGE_ONLY = False  # Skip music system (for testing)
-    
-    # Phase 2: Axis Mapping (not yet implemented)
-    AUTO_SYNC = False  # Automatically sync emotional states
-    SYNC_INTERVAL = 1.0  # Seconds between syncs (if auto)
-    
-    # Phase 3: Memory (not yet implemented)
-    UNIFIED_MEMORY = False  # Use unified D_Map
-    
-    # Phase 4: Agency (not yet implemented)
-    AUTONOMOUS_CREATION = False  # Enable autonomous creative actions
-    
-    # =========================================================================
-    # THRESHOLDS & PARAMETERS
-    # =========================================================================
-    
-    # Axis mapping (Phase 2)
-    EMOTION_SYNC_STRENGTH = 0.1  # How strongly emotions affect ontological axes
-    ONTOLOGICAL_SYNC_STRENGTH = 0.1  # How strongly ontological affects emotions
-    
-    # Memory (Phase 3)
-    MEMORY_RECALL_THRESHOLD = 0.3  # Minimum similarity for recall
-    MAX_RECALL_RESULTS = 5  # Maximum number of memories to recall
-    
-    # Creative agency (Phase 4)
-    CREATIVE_THRESHOLD_HIGH = 0.7  # High creativity trigger
-    CREATIVE_THRESHOLD_MEDIUM = 0.5  # Medium creativity trigger
-    
-    # =========================================================================
-    # SYSTEM CHECKS
-    # =========================================================================
+    # === SYSTEM ===
+    VERSION = "8.7.1-beta"  # Zaktualizowana
+    DEBUG = bool(os.getenv('DEBUG', False))  # Z env var
     
     @classmethod
-    def validate_environment(cls):
-        """
-        Validate that environment is properly set up.
-        
-        Returns:
-            tuple: (success: bool, messages: list)
-        """
-        messages = []
-        success = True
-        
-        # Check Language soul file
-        if not os.path.exists(cls.LANGUAGE_SOUL_FILE):
-            messages.append(f"⚠ Warning: {cls.LANGUAGE_SOUL_FILE} not found")
-            messages.append("  Language system will create new soul")
-        
-        # Check data directory
-        if not os.path.exists("data"):
-            messages.append("ℹ Info: Creating data/ directory")
+    def init_dirs(cls):
+        """Tworzy katalogi jeśli nie istnieją – z obsługą błędów."""
+        for dir_path in [cls.SOUL_DIR, cls.MUSIC_DIR, cls.LOGS_DIR]:
             try:
-                os.makedirs("data", exist_ok=True)
-            except Exception as e:
-                messages.append(f"❌ Error creating data/: {e}")
-                success = False
-        
-        # Check union_soul directory (Phase 3)
-        union_soul_dir = os.path.dirname(cls.UNION_SOUL_FILE)
-        if not os.path.exists(union_soul_dir):
-            messages.append(f"ℹ Info: Creating {union_soul_dir}/ directory")
-            try:
-                os.makedirs(union_soul_dir, exist_ok=True)
-            except Exception as e:
-                messages.append(f"⚠ Warning: Could not create {union_soul_dir}/: {e}")
-        
-        return success, messages
+                dir_path.mkdir(parents=True, exist_ok=True)
+            except OSError as e:
+                print(f"{Colors.RED}[CONFIG] Błąd tworzenia {dir_path}: {e}{Colors.RESET}")
     
     @classmethod
-    def print_config(cls):
-        """Print current configuration."""
-        print("\n" + "="*70)
-        print("  ⚙️  EriAmo Union Configuration")
-        print("="*70)
-        print(f"Version: {cls.VERSION}")
-        print(f"Phase: {cls.PHASE}")
-        
-        print("\n📂 Paths:")
-        print(f"  Language soul: {cls.LANGUAGE_SOUL_FILE}")
-        print(f"  Music history: {cls.MUSIC_HISTORY_FILE}")
-        print(f"  Union soul: {cls.UNION_SOUL_FILE}")
-        
-        print("\n⚙️  Behavior:")
-        print(f"  Verbose: {cls.VERBOSE}")
-        print(f"  Language only: {cls.LANGUAGE_ONLY}")
-        print(f"  Auto-sync: {cls.AUTO_SYNC} (Phase 2)")
-        print(f"  Unified memory: {cls.UNIFIED_MEMORY} (Phase 3)")
-        print(f"  Autonomous creation: {cls.AUTONOMOUS_CREATION} (Phase 4)")
-        
-        print("\n🎯 Thresholds:")
-        print(f"  Emotion sync: {cls.EMOTION_SYNC_STRENGTH}")
-        print(f"  Memory recall: {cls.MEMORY_RECALL_THRESHOLD}")
-        print(f"  Creative (high): {cls.CREATIVE_THRESHOLD_HIGH}")
-        
-        print("="*70 + "\n")
+    def get_axis_index(cls, axis_name: str) -> int:
+        """Zwraca indeks osi po nazwie – raise jeśli brak."""
+        idx = {axis: i for i, axis in enumerate(cls.AXES)}.get(axis_name, -1)
+        if idx == -1:
+            raise ValueError(f"Oś '{axis_name}' nie istnieje w AXES.")
+        return idx
     
     @classmethod
-    def check_dependencies(cls):
-        """
-        Check if required dependencies are installed.
-        
-        Returns:
-            tuple: (success: bool, missing: list)
-        """
-        required = [
-            'numpy',
-            'pandas',  # For music system
-            'matplotlib',  # For music system
-        ]
-        
-        optional = [
-            'music21',  # For advanced music analysis
-            'plotly',  # For visualization
-            'pytest',  # For testing
-        ]
-        
-        missing_required = []
-        missing_optional = []
-        
-        for pkg in required:
-            try:
-                __import__(pkg)
-            except ImportError:
-                missing_required.append(pkg)
-        
-        for pkg in optional:
-            try:
-                __import__(pkg)
-            except ImportError:
-                missing_optional.append(pkg)
-        
-        return len(missing_required) == 0, missing_required, missing_optional
+    def is_ephemeral(cls, axis_name: str) -> bool:
+        """Sprawdza czy oś jest efemeryczna."""
+        return axis_name in set(cls.EPHEMERAL_AXES)
+    
+    @classmethod
+    def is_persistent(cls, axis_name: str) -> bool:
+        """Sprawdza czy oś jest trwała."""
+        return axis_name in set(cls.PERSISTENT_AXES)
+    
+    @classmethod
+    def is_biological(cls, axis_name: str) -> bool:
+        """Sprawdza czy oś jest biologiczna (emocja Plutchika)."""
+        return axis_name in cls.BIO_AXES
+    
+    @classmethod
+    def is_metaphysical(cls, axis_name: str) -> bool:
+        """Sprawdza czy oś jest metafizyczna."""
+        return axis_name in cls.META_AXES
+
+    @classmethod
+    def validate_axes(cls):
+        """Waliduje konfigurację osi – wywołać na starcie."""
+        assert len(cls.AXES) == cls.DIMENSION, "Błąd: len(AXES) != DIMENSION"
+        assert len(set(cls.AXES)) == cls.DIMENSION, "Błąd: Duplikaty w AXES"
+        assert len(cls.BIO_AXES) == cls.BIO_DIM, "Błąd: BIO_AXES len"
+        assert len(cls.META_AXES) == cls.META_DIM, "Błąd: META_AXES len"
+        print(f"{Colors.GREEN}[CONFIG] Walidacja osi OK.{Colors.RESET}")
 
 
-# =============================================================================
-# QUICK CHECK
-# =============================================================================
+# ═══════════════════════════════════════════════════════════════════════════════
+# ALIASY DLA KOMPATYBILNOŚCI WSTECZNEJ
+# ═══════════════════════════════════════════════════════════════════════════════
 
-def quick_check():
-    """Run quick environment check."""
-    print("\n🔍 Running environment check...\n")
-    
-    # Print config
-    UnionConfig.print_config()
-    
-    # Validate environment
-    print("📋 Validating environment...")
-    success, messages = UnionConfig.validate_environment()
-    
-    for msg in messages:
-        print(f"  {msg}")
-    
-    if success:
-        print("  ✅ Environment OK")
-    else:
-        print("  ❌ Environment has issues")
-    
-    # Check dependencies
-    print("\n📦 Checking dependencies...")
-    success, missing_req, missing_opt = UnionConfig.check_dependencies()
-    
-    if missing_req:
-        print(f"  ❌ Missing required: {', '.join(missing_req)}")
-        print(f"     Install with: pip install {' '.join(missing_req)}")
-    else:
-        print("  ✅ All required dependencies installed")
-    
-    if missing_opt:
-        print(f"  ℹ️  Missing optional: {', '.join(missing_opt)}")
-        print(f"     Install with: pip install {' '.join(missing_opt)}")
-    else:
-        print("  ✅ All optional dependencies installed")
-    
-    print("\n" + "="*70 + "\n")
-    
-    return success and len(missing_req) == 0
+# Alias klasy Config -> UnionConfig
+Config = UnionConfig
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# EKSPORTY MODUŁU
+# ═══════════════════════════════════════════════════════════════════════════════
+
+__all__ = [
+    # Główne definicje osi
+    'AXES',
+    'DIMENSION',
+    'BIO_DIM',
+    'META_DIM',
+    'BIO_AXES',
+    'META_AXES',
+    
+    # Klasyfikacja osi
+    'EPHEMERAL_AXES',
+    'PERSISTENT_AXES',
+    'DYNAMIC_AXES',
+    
+    # Aliasy kompatybilności
+    'AXES_LIST',
+    
+    # Klasy
+    'UnionConfig',
+    'Config',  # Alias dla kompatybilności
+    'Colors',
+]
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TEST
+# ═══════════════════════════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
-    quick_check()
+    UnionConfig.validate_axes()  # Walidacja na starcie testu
+    UnionConfig.init_dirs()      # Test tworzenia dir
+    
+    print(f"{Colors.CYAN}=== EriAmo Union Config ==={Colors.RESET}")
+    print(f"\n{Colors.GREEN}AXES ({DIMENSION}):{Colors.RESET}")
+    
+    for i, axis in enumerate(AXES):
+        category = "BIO" if i < BIO_DIM else "META"
+        ephemeral = "⚡" if UnionConfig.is_ephemeral(axis) else ""
+        persistent = "🔒" if UnionConfig.is_persistent(axis) else ""
+        dynamic = "🔄" if axis in DYNAMIC_AXES else ""
+        color = Colors.get_for_axis(axis)
+        print(f"  [{i:2d}] {color}{axis:12s}{Colors.RESET} ({category}) {ephemeral}{persistent}{dynamic}")
+    
+    print(f"\n{Colors.YELLOW}Klasyfikacja:{Colors.RESET}")
+    print(f"  Efemeryczne: {EPHEMERAL_AXES}")
+    print(f"  Trwałe:      {PERSISTENT_AXES}")
+    print(f"  Dynamiczne:  {DYNAMIC_AXES}")

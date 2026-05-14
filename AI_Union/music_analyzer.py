@@ -1,137 +1,283 @@
-# music_analyzer_v59.py
+# music_analyzer.py v8.0.0 [15-AXES MIGRATION]
 # -*- coding: utf-8 -*-
 """
-Analizator Muzyczny EriAmo v5.9.1 [COMPATIBILITY FIX]
-- Dostosowany do rdzenia v5.9.1 (brak osi 'etyka', nowa oś 'improwizacja')
-- Mapowanie cech "etycznych" na Affections (Wzniosłość) i Improwizację (Porządek)
+Analizator Muzyczny EriAmo v8.0.0
+PEŁNA MIGRACJA do architektury 15-osiowej (union_config.py)
+
+Zmiany względem v5.9.1:
+- Usunięto nieistniejące osie: emocje, affections, etyka, improwizacja
+- Mapowanie cech na 15 osi (8 Plutchik + 7 metafizycznych)
+- Naprawiono literówkę: przestrzen → przestrzeń
 """
+
 import numpy as np
-from amocore import AXES_LIST, EPHEMERAL_AXES, PERSISTENT_AXES
+from union_config import AXES, DIMENSION, EPHEMERAL_AXES, PERSISTENT_AXES, Colors
 
 
 class MusicAnalyzer:
     """
-    Analizator przekształcający cechy muzyczne na wektory wpływu.
-    """
-    AXES_MAP = {axis: i for i, axis in enumerate(AXES_LIST)}
-    AXES_COUNT = len(AXES_LIST)
+    Analizator przekształcający cechy muzyczne na wektory wpływu 15D.
     
-    # Współczynniki mapowania cech na osie.
-    # Wartość może być krotką (axis_idx, value) LUB listą krotek [(idx, val), (idx, val)]
+    Model 15 osi:
+    - Biologiczne (0-7): radość, smutek, strach, gniew, miłość, wstręt, zaskoczenie, akceptacja
+    - Metafizyczne (8-14): logika, wiedza, czas, kreacja, byt, przestrzeń, chaos
+    """
+    
+    # Mapowanie nazw osi na indeksy
+    AXES_MAP = {axis: i for i, axis in enumerate(AXES)}
+    AXES_COUNT = DIMENSION  # 15
+    
+    # ═══════════════════════════════════════════════════════════════════════════
+    # WSPÓŁCZYNNIKI MAPOWANIA CECH MUZYCZNYCH NA 15 OSI
+    # ═══════════════════════════════════════════════════════════════════════════
+    
     COEFFICIENTS = {
-        # === LOGIKA ===
-        "FUGA": (AXES_MAP['logika'], 7.0),
-        "KANON": (AXES_MAP['logika'], 5.0),
-        "MENUET": (AXES_MAP['logika'], 2.5),
-        "ZLOZONY": (AXES_MAP['logika'], 3.0),
-        "PUNK": (AXES_MAP['logika'], -2.0),
-        "JAZZ": (AXES_MAP['logika'], 6.0),
-        "PROSTY": (AXES_MAP['logika'], -1.0),
-        "MATH": (AXES_MAP['logika'], 8.0),
+        # ═══════════════════════════════════════════════════════════════════════
+        # LOGIKA (indeks 8) - Struktura, forma, porządek
+        # ═══════════════════════════════════════════════════════════════════════
+        "FUGA": (8, 7.0),           # Szczyt logiki muzycznej
+        "KANON": (8, 5.0),          # Ścisła imitacja
+        "MENUET": (8, 2.5),         # Forma taneczna
+        "ZLOZONY": (8, 3.0),        # Złożona struktura
+        "MATH": (8, 8.0),           # Math rock
+        "JAZZ": (8, 6.0),           # Złożona harmonia
+        "PUNK": (8, -2.0),          # Prostota
+        "PROSTY": (8, -1.0),        # Minimalna struktura
         
-        # === WIEDZA ===
-        "BAROQUE": (AXES_MAP['wiedza'], 3.0),
-        "KLASYCYZM": (AXES_MAP['wiedza'], 4.0),
-        "ROMANTYZM": (AXES_MAP['wiedza'], 4.0),
-        "HISTORYCZNY": (AXES_MAP['wiedza'], 5.0),
+        # ═══════════════════════════════════════════════════════════════════════
+        # WIEDZA (indeks 9) - Tradycja, historia, erudycja
+        # ═══════════════════════════════════════════════════════════════════════
+        "BAROQUE": (9, 3.0),
+        "KLASYCYZM": (9, 4.0),
+        "ROMANTYZM": (9, 4.0),
+        "HISTORYCZNY": (9, 5.0),
         
-        # === AFFECTIONS (Pamięć głęboka / Emocje wyższe) ===
-        "DOLCE": (AXES_MAP['affections'], 3.0),
-        "CON_FUOCO": (AXES_MAP['affections'], 6.0),
-        "LAMENTOSO": (AXES_MAP['affections'], -6.0),
-        "INTYMNA": (AXES_MAP['affections'], 4.0),
-        "HEAVY_METAL": (AXES_MAP['affections'], -5.0),
-        "TRAGEDIA": (AXES_MAP['affections'], -8.0),
-        "WZNIOSLY": (AXES_MAP['affections'], 7.0),
-        "NOSTALGICZNY": (AXES_MAP['affections'], -3.0),
-        "CHWALA": (AXES_MAP['affections'], 8.0),
+        # ═══════════════════════════════════════════════════════════════════════
+        # CZAS (indeks 10) - Tempo, rytm, puls
+        # ═══════════════════════════════════════════════════════════════════════
+        "ALLEGRO": (10, 3.0),
+        "PRESTO": (10, 5.0),
+        "ADAGIO": (10, -3.0),
+        "ROCK": (10, 4.0),
+        "POP": (10, 2.0),
         
-        # === BYT (Istnienie, Fizyczność) ===
-        "LIVE": (AXES_MAP['byt'], 5.0),
-        "RAW": (AXES_MAP['byt'], 4.0),
-        "ACOUSTIC": (AXES_MAP['byt'], 3.0),
-        "BASS": (AXES_MAP['byt'], 4.0),
-        "HEAVY": (AXES_MAP['byt'], 5.0),
-        "SYNTH": (AXES_MAP['byt'], -2.0),
-        "DIGITAL": (AXES_MAP['byt'], -3.0),
-        "LOFI": (AXES_MAP['byt'], 2.0),
+        # ═══════════════════════════════════════════════════════════════════════
+        # KREACJA (indeks 11) - Twórczość, improwizacja, nowatorstwo
+        # ═══════════════════════════════════════════════════════════════════════
+        "IMPROWIZACJA": (11, 4.0),
+        "PROG_ROCK": (11, 7.0),
+        "EKSPERYMENTALNY": (11, 6.0),
+        "AVANT_GARDE": (11, 8.0),
         
-        # === IMPROWIZACJA (Swoboda vs Porządek) - ZASTĘPUJE ETYKĘ ===
-        # Wartości ujemne = Porządek/Rytuał (dawniej wysoka Etyka)
-        # Wartości dodatnie = Chaos/Swoboda (dawniej niska Etyka)
+        # ═══════════════════════════════════════════════════════════════════════
+        # BYT (indeks 12) - Fizyczność, obecność, ciężar
+        # ═══════════════════════════════════════════════════════════════════════
+        "LIVE": (12, 5.0),
+        "RAW": (12, 4.0),
+        "ACOUSTIC": (12, 3.0),
+        "BASS": (12, 4.0),
+        "HEAVY": (12, 5.0),
+        "SYNTH": (12, -2.0),
+        "DIGITAL": (12, -3.0),
+        "LOFI": (12, 2.0),
         
-        "HEROIC": (AXES_MAP['affections'], 6.0),      # Heroizm to teraz uczucie chwały
-        "SACRED": [
-            (AXES_MAP['affections'], 7.0),            # Wzniosłość
-            (AXES_MAP['improwizacja'], -5.0)          # Rytuał (Porządek)
-        ],
-        "EPIC": (AXES_MAP['affections'], 5.0),
+        # ═══════════════════════════════════════════════════════════════════════
+        # PRZESTRZEŃ (indeks 13) - Reverb, głębia, rozmach
+        # ═══════════════════════════════════════════════════════════════════════
+        "AMBIENT": (13, 4.0),
+        "REVERB": (13, 3.0),
+        "ORKIESTROWY": (13, 5.0),
+        "KOSMICZNY": (13, 8.0),
+        "ECHO": (13, 4.0),
+        "STEREO": (13, 2.0),
+        "KATEDRALNY": (13, 6.0),
         
-        "HARMONIA": (AXES_MAP['improwizacja'], -3.0), # Porządek
-        "DISSONANCE": (AXES_MAP['improwizacja'], 3.0),# Nieporządek
-        "DARK": (AXES_MAP['affections'], -4.0),
-        "SATANIC": [
-            (AXES_MAP['affections'], -5.0),           # Mrok
-            (AXES_MAP['improwizacja'], 8.0)           # Bunt/Chaos
-        ],
-        
-        # === Cechy ZŁOŻONE ===
-        "POWER_METAL": [
-            (AXES_MAP['affections'], 6.0), # Pozytywna energia
-            (AXES_MAP['byt'], 4.0),        # Mocne uderzenie
-            (AXES_MAP['czas'], 5.0),       # Szybkość
-            (AXES_MAP['improwizacja'], -2.0) # Dyscyplina rytmiczna
-        ],
+        # ═══════════════════════════════════════════════════════════════════════
+        # CHAOS (indeks 14) - Entropia, nieprzewidywalność
+        # ═══════════════════════════════════════════════════════════════════════
         "CHAOS": [
-            (AXES_MAP['logika'], -6.0),    # Burzy logikę
-            (AXES_MAP['kreacja'], 4.0),    # Rodzi gwiazdy
-            (AXES_MAP['improwizacja'], 10.0) # Totalna swoboda
+            (8, -6.0),    # Burzy logikę
+            (11, 4.0),    # Rodzi kreatywność
+            (14, 10.0)    # Maksymalny chaos
         ],
-        "REGGAE": [
-            (AXES_MAP['czas'], -2.0),      # Laid back
-            (AXES_MAP['affections'], 3.0), # Positive vibration
-            (AXES_MAP['improwizacja'], 3.0) # Luz
+        "DISSONANCE": (14, 3.0),
+        "NOISE": (14, 5.0),
+        "HARMONIA": (14, -3.0),  # Przeciwieństwo chaosu
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # RADOŚĆ (indeks 0) - Pozytywne emocje, energia
+        # ═══════════════════════════════════════════════════════════════════════
+        "WESOLY": (0, 5.0),
+        "RADOSC": (0, 6.0),
+        "EUFORIA": (0, 10.0),
+        "EKSTAZA": (0, 15.0),
+        "TRIUMF": (0, 8.0),
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # SMUTEK (indeks 1) - Melancholia, żal
+        # ═══════════════════════════════════════════════════════════════════════
+        "MELANCHOLIA": (1, 5.0),
+        "SMUTEK": (1, 6.0),
+        "LAMENTOSO": (1, 8.0),
+        "TRAGEDIA": (1, 10.0),
+        "NOSTALGICZNY": (1, 4.0),
+        "REQUIEM": [
+            (1, 7.0),     # Smutek
+            (12, 4.0),    # Byt (śmiertelność)
+            (13, 5.0)     # Przestrzeń (sakralność)
         ],
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # STRACH (indeks 2) - Lęk, niepokój, napięcie
+        # ═══════════════════════════════════════════════════════════════════════
+        "DARK": (2, 4.0),
+        "HORROR": (2, 7.0),
+        "SUSPENSE": (2, 5.0),
         "DRAMATYCZNY": [
-            (AXES_MAP['emocje'], 8.0),     # Wysokie pobudzenie
-            (AXES_MAP['affections'], -2.0) # Napięcie
+            (2, 3.0),     # Strach/napięcie
+            (3, 2.0)      # Gniew/intensywność
         ],
-
-        # === EMOCJE (Efemeryczne) ===
-        "EKSTAZA": (AXES_MAP['emocje'], 15.0),
-        "GNIEW": (AXES_MAP['emocje'], -12.0),
-        "WESOLY": (AXES_MAP['emocje'], 5.0),
-        "MELANCHOLIA": (AXES_MAP['emocje'], -3.0),
-        "RADOSC": (AXES_MAP['emocje'], 6.0),
-        "SMUTEK": (AXES_MAP['emocje'], -5.0),
-        "EUFORIA": (AXES_MAP['emocje'], 10.0),
         
-        # === CZAS ===
-        "ALLEGRO": (AXES_MAP['czas'], 3.0),
-        "PRESTO": (AXES_MAP['czas'], 5.0),
-        "ADAGIO": (AXES_MAP['czas'], -3.0),
-        "ROCK": (AXES_MAP['czas'], 4.0),
-        "POP": (AXES_MAP['czas'], 2.0),
+        # ═══════════════════════════════════════════════════════════════════════
+        # GNIEW (indeks 3) - Agresja, moc, intensywność
+        # ═══════════════════════════════════════════════════════════════════════
+        "GNIEW": (3, 8.0),
+        "AGRESJA": (3, 10.0),
+        "CON_FUOCO": (3, 6.0),
+        "HEAVY_METAL": [
+            (3, 6.0),     # Gniew
+            (12, 5.0),    # Byt (ciężar)
+            (10, 5.0)     # Czas (szybkość)
+        ],
+        "PUNK_ROCK": [
+            (3, 5.0),     # Gniew (bunt)
+            (14, 4.0),    # Chaos
+            (10, 6.0)     # Czas (szybkość)
+        ],
         
-        # === PRZESTRZEŃ ===
-        "AMBIENT": (AXES_MAP['przestrzen'], 4.0),
-        "REVERB": (AXES_MAP['przestrzen'], 3.0),
-        "ORKIESTROWY": (AXES_MAP['przestrzen'], 5.0),
-        "KOSMICZNY": (AXES_MAP['przestrzen'], 8.0),
-        "ECHO": (AXES_MAP['przestrzen'], 4.0),
-        "STEREO": (AXES_MAP['przestrzen'], 2.0),
+        # ═══════════════════════════════════════════════════════════════════════
+        # MIŁOŚĆ (indeks 4) - Czułość, ciepło, bliskość
+        # ═══════════════════════════════════════════════════════════════════════
+        "DOLCE": (4, 3.0),
+        "INTYMNA": (4, 5.0),
+        "ROMANTYCZNY": (4, 6.0),
+        "BALLADA": [
+            (4, 5.0),     # Miłość
+            (1, 3.0)      # Smutek (tęsknota)
+        ],
         
-        # === KREACJA ===
-        "IMPROWIZACJA": (AXES_MAP['kreacja'], 4.0),
-        "PROG_ROCK": (AXES_MAP['kreacja'], 7.0),
-        "EKSPERYMENTALNY": (AXES_MAP['kreacja'], 6.0),
+        # ═══════════════════════════════════════════════════════════════════════
+        # WSTRĘT (indeks 5) - Obrzydzenie, odrzucenie, moralność
+        # ═══════════════════════════════════════════════════════════════════════
+        "SATANIC": [
+            (5, 5.0),     # Wstręt (moralny)
+            (14, 6.0),    # Chaos
+            (2, 4.0)      # Strach
+        ],
+        "GRINDCORE": [
+            (5, 4.0),     # Wstręt
+            (3, 6.0),     # Gniew
+            (14, 5.0)     # Chaos
+        ],
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # ZASKOCZENIE (indeks 6) - Nowość, nieoczekiwane
+        # ═══════════════════════════════════════════════════════════════════════
+        "ZASKAKUJACY": (6, 5.0),
+        "UNEXPECTED": (6, 4.0),
+        "TWIST": (6, 6.0),
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # AKCEPTACJA (indeks 7) - Spokój, zgoda, harmonia wewnętrzna
+        # ═══════════════════════════════════════════════════════════════════════
+        "SPOKOJ": (7, 5.0),
+        "MEDYTACYJNY": (7, 6.0),
+        "ZEN": (7, 7.0),
+        "SACRED": [
+            (7, 5.0),     # Akceptacja (duchowość)
+            (4, 3.0),     # Miłość
+            (13, 4.0)     # Przestrzeń (sakralność)
+        ],
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # ZŁOŻONE GATUNKI (mapowanie na wiele osi)
+        # ═══════════════════════════════════════════════════════════════════════
+        
+        "POWER_METAL": [
+            (0, 6.0),     # Radość (pozytywna energia)
+            (12, 4.0),    # Byt (moc)
+            (10, 5.0),    # Czas (szybkość)
+            (8, 3.0)      # Logika (struktura)
+        ],
+        
+        "REGGAE": [
+            (7, 4.0),     # Akceptacja (laid back)
+            (0, 3.0),     # Radość (positive vibes)
+            (10, -2.0)    # Czas (wolniejszy)
+        ],
+        
+        "BLUES": [
+            (1, 5.0),     # Smutek
+            (4, 3.0),     # Miłość (tęsknota)
+            (12, 3.0)     # Byt (autentyczność)
+        ],
+        
+        "HEROIC": [
+            (0, 5.0),     # Radość (triumf)
+            (3, 3.0),     # Gniew (siła)
+            (13, 4.0)     # Przestrzeń (epickość)
+        ],
+        
+        "WZNIOSLY": [
+            (7, 5.0),     # Akceptacja
+            (4, 4.0),     # Miłość
+            (13, 5.0)     # Przestrzeń
+        ],
+        
+        "CHWALA": [
+            (0, 7.0),     # Radość
+            (7, 4.0),     # Akceptacja
+            (13, 5.0)     # Przestrzeń
+        ],
+        
+        "EPIC": [
+            (0, 4.0),     # Radość
+            (13, 6.0),    # Przestrzeń
+            (12, 4.0)     # Byt
+        ],
+        
+        "FOLK": [
+            (7, 3.0),     # Akceptacja (tradycja)
+            (9, 4.0),     # Wiedza (historia)
+            (12, 3.0)     # Byt (autentyczność)
+        ],
+        
+        "ELEKTRONIKA": [
+            (11, 5.0),    # Kreacja
+            (13, 4.0),    # Przestrzeń
+            (12, -2.0)    # Byt (cyfrowy)
+        ],
     }
 
-    def __init__(self, core, logger):
+    def __init__(self, core=None, logger=None):
+        """
+        Args:
+            core: Referencja do EriAmoCore (opcjonalna)
+            logger: Logger do zapisu stanów (opcjonalny)
+        """
         self.core = core
         self.logger = logger
 
     def calculate_change_vector(self, features: list) -> np.ndarray:
+        """
+        Oblicza wektor zmiany 15D na podstawie listy cech muzycznych.
+        
+        Args:
+            features: Lista cech np. ['HEAVY_METAL', 'PRESTO', 'RAW']
+            
+        Returns:
+            np.ndarray: Wektor 15-wymiarowy
+        """
         F = np.zeros(self.AXES_COUNT)
         recognized = []
         unknown = []
@@ -140,78 +286,237 @@ class MusicAnalyzer:
             key = f.upper().strip()
             if key in self.COEFFICIENTS:
                 entry = self.COEFFICIENTS[key]
+                
+                # Obsługa pojedynczej krotki lub listy krotek
                 if isinstance(entry, list):
                     for idx, val in entry:
                         F[idx] += val
                 else:
                     idx, val = entry
                     F[idx] += val
+                    
                 recognized.append(key)
             else:
                 unknown.append(key)
         
-        if unknown:
-            self.core.log(f"[UWAGA] Nierozpoznane cechy: {unknown}", "YELLOW")
+        if unknown and self.core:
+            self._log(f"[UWAGA] Nierozpoznane cechy: {unknown}", "YELLOW")
+            
         return F
 
     def analyze_and_shift(self, features: list, description: str, mode: str = "!teach"):
-        self.core.apply_time_based_decay()
-        F_bazowe = self.calculate_change_vector(features)
+        """
+        Analizuje cechy i aplikuje zmianę do rdzenia.
+        
+        Args:
+            features: Lista cech muzycznych
+            description: Opis zdarzenia
+            mode: "!teach" (pełna zmiana) lub "!simulate" (10% siły)
+        """
+        if self.core:
+            self.core.apply_time_based_decay()
+            
+        F_base = self.calculate_change_vector(features)
         scale = 0.1 if mode == "!simulate" else 1.0
-        F_final = F_bazowe * scale
+        F_final = F_base * scale
 
-        is_compressed, cos_alpha = self.core.check_ontological_compression(F_bazowe)
-        emotion = self._get_emotion(cos_alpha, F_bazowe[self.AXES_MAP['affections']])
+        # Oblicz kompresję ontologiczną (jeśli core dostępny)
+        is_compressed = False
+        cos_alpha = 0.0
+        
+        if self.core and hasattr(self.core, 'check_ontological_compression'):
+            is_compressed, cos_alpha = self.core.check_ontological_compression(F_base)
+        
+        emotion = self._get_emotion_interpretation(cos_alpha, F_final)
 
-        for i, axis in enumerate(self.core.AXES):
-            if F_final[i] != 0:
-                self.core.shift_axis(axis, "INCREMENT", F_final[i])
+        # Aplikuj zmiany do rdzenia
+        if self.core:
+            for i, axis in enumerate(AXES):
+                if F_final[i] != 0:
+                    self.core.shift_axis(axis, "INCREMENT", F_final[i])
 
-        self.core.log(f"\n{'='*50}", "CYAN")
+        # Logowanie
+        self._log(f"\n{'='*50}", "CYAN")
         if is_compressed:
-            self.core.log(f"ANALIZA (KOMPRESJA): {description}", "GRAY")
-            self.core.log(f"Tożsamość potwierdzona (cos α = {cos_alpha:.4f}).", "GRAY")
+            self._log(f"ANALIZA (KOMPRESJA): {description}", "GRAY")
+            self._log(f"Tożsamość potwierdzona (cos α = {cos_alpha:.4f}).", "GRAY")
         else:
-            self.core.log(f"ANALIZA (NOWOŚĆ): {description}", "GREEN")
-            self.core.log(f"Zmiana trajektorii (cos α = {cos_alpha:.4f}).", "YELLOW")
+            self._log(f"ANALIZA (NOWOŚĆ): {description}", "GREEN")
+            self._log(f"Zmiana trajektorii (cos α = {cos_alpha:.4f}).", "YELLOW")
         
-        self.core.log(f"{'='*50}", "CYAN")
-        self.core.log(f"Cechy: {features}", "WHITE")
-        self.core.log(f"Interpretacja: {emotion}", "PINK")
+        self._log(f"{'='*50}", "CYAN")
+        self._log(f"Cechy: {features}", "WHITE")
+        self._log(f"Interpretacja: {emotion}", "MAGENTA")
         
-        self.logger.log_state(self.core, F_final, cos_alpha, emotion, description, mode, compressed=is_compressed)
+        # Zapis do loggera (jeśli dostępny)
+        if self.logger:
+            self.logger.log_state(
+                self.core, F_final, cos_alpha, 
+                emotion, description, mode, 
+                compressed=is_compressed
+            )
 
-    def _get_emotion(self, cos_a: float, aff_val: float) -> str:
-        if aff_val < -3.0:
-            if cos_a < -0.4: return "Konflikt Wewnętrzny"
-            else: return "Smutek / Kontemplacja"
-        if aff_val > 3.0:
-            if cos_a > 0.6: return "Zachwyt / Potwierdzenie"
-            else: return "Ciepło / Czułość"
-        if cos_a > 0.98: return "Harmonia Całkowita (Tożsamość)"
-        elif cos_a > 0.4: return "Akceptacja / Spokój"
-        elif cos_a > -0.4: return "Zdziwienie / Nowość"
-        else: return "Dystans / Obcość"
+    def _get_emotion_interpretation(self, cos_alpha: float, F_vector: np.ndarray) -> str:
+        """
+        Interpretuje emocjonalny charakter muzyki na podstawie wektora 15D.
+        """
+        # Znajdź dominującą oś
+        dominant_idx = np.argmax(np.abs(F_vector))
+        dominant_axis = AXES[dominant_idx]
+        dominant_val = F_vector[dominant_idx]
+        
+        # Interpretacje dla każdej osi
+        interpretations = {
+            'radość': "Radość / Euforia" if dominant_val > 0 else "Brak radości",
+            'smutek': "Smutek / Melancholia" if dominant_val > 0 else "Brak smutku",
+            'strach': "Strach / Napięcie" if dominant_val > 0 else "Spokój",
+            'gniew': "Gniew / Agresja" if dominant_val > 0 else "Łagodność",
+            'miłość': "Miłość / Czułość" if dominant_val > 0 else "Chłód",
+            'wstręt': "Wstręt / Odrzucenie" if dominant_val > 0 else "Akceptacja",
+            'zaskoczenie': "Zaskoczenie / Nowość" if dominant_val > 0 else "Przewidywalność",
+            'akceptacja': "Akceptacja / Spokój" if dominant_val > 0 else "Odrzucenie",
+            'logika': "Logika / Struktura" if dominant_val > 0 else "Chaos",
+            'wiedza': "Erudycja / Tradycja" if dominant_val > 0 else "Nowatorstwo",
+            'czas': "Szybkość / Energia" if dominant_val > 0 else "Wolność / Spokój",
+            'kreacja': "Kreatywność / Innowacja" if dominant_val > 0 else "Konwencja",
+            'byt': "Fizyczność / Obecność" if dominant_val > 0 else "Eteryczność",
+            'przestrzeń': "Przestrzeń / Głębia" if dominant_val > 0 else "Kameralność",
+            'chaos': "Chaos / Entropia" if dominant_val > 0 else "Harmonia"
+        }
+        
+        base_interpretation = interpretations.get(dominant_axis, "Neutralny")
+        
+        # Dodaj kontekst z cos_alpha
+        if cos_alpha > 0.98:
+            return f"{base_interpretation} (Harmonia Całkowita)"
+        elif cos_alpha > 0.6:
+            return f"{base_interpretation} (Zgodność)"
+        elif cos_alpha > 0.2:
+            return f"{base_interpretation} (Nowość)"
+        elif cos_alpha > -0.2:
+            return f"{base_interpretation} (Neutralność)"
+        else:
+            return f"{base_interpretation} (Konflikt)"
+
+    def _log(self, message: str, color: str = "WHITE"):
+        """Helper do logowania z kolorami."""
+        color_map = {
+            "CYAN": Colors.CYAN,
+            "GREEN": Colors.GREEN,
+            "YELLOW": Colors.YELLOW,
+            "RED": Colors.RED,
+            "MAGENTA": Colors.MAGENTA,
+            "WHITE": Colors.WHITE,
+            "GRAY": Colors.DIM,
+        }
+        c = color_map.get(color, Colors.RESET)
+        print(f"{c}{message}{Colors.RESET}")
 
     def get_feature_info(self, feature_name: str) -> dict:
+        """Zwraca informacje o cesze muzycznej."""
         key = feature_name.upper()
-        if key not in self.COEFFICIENTS: return {"exists": False}
+        if key not in self.COEFFICIENTS:
+            return {"exists": False}
+            
         entry = self.COEFFICIENTS[key]
+        
         if isinstance(entry, list):
-            info_val = entry[0][1]
-            axis_name = AXES_LIST[entry[0][0]] + " i inne"
+            # Wieloosiowa cecha
+            axes_affected = [(AXES[idx], val) for idx, val in entry]
+            return {
+                "exists": True,
+                "name": key,
+                "multi_axis": True,
+                "axes": axes_affected,
+                "is_ephemeral": any(AXES[idx] in EPHEMERAL_AXES for idx, _ in entry)
+            }
         else:
-            info_val = entry[1]
-            axis_name = AXES_LIST[entry[0]]
-        return {"exists": True, "name": key, "axis": axis_name, "value": info_val, "is_ephemeral": False}
+            idx, val = entry
+            return {
+                "exists": True,
+                "name": key,
+                "axis": AXES[idx],
+                "value": val,
+                "is_ephemeral": AXES[idx] in EPHEMERAL_AXES
+            }
 
     def list_all_features(self) -> dict:
-        grouped = {axis: [] for axis in AXES_LIST}
+        """Zwraca wszystkie cechy pogrupowane według osi."""
+        grouped = {axis: [] for axis in AXES}
+        
         for feature, entry in self.COEFFICIENTS.items():
-            if isinstance(entry, list): idx, val = entry[0]
-            else: idx, val = entry
-            axis = AXES_LIST[idx]
+            if isinstance(entry, list):
+                # Wieloosiowa - dodaj do głównej osi (pierwszej)
+                idx, val = entry[0]
+            else:
+                idx, val = entry
+                
+            axis = AXES[idx]
             grouped[axis].append((feature, val))
+        
+        # Sortuj po wartości
         for axis in grouped:
             grouped[axis].sort(key=lambda x: x[1], reverse=True)
+            
         return grouped
+
+    def get_axes_summary(self) -> str:
+        """Zwraca podsumowanie modelu 15 osi."""
+        summary = [
+            "=" * 60,
+            "MODEL 15 OSI - Music Analyzer v8.0.0",
+            "=" * 60,
+            "",
+            "OSIE BIOLOGICZNE (Plutchik, 0-7):",
+        ]
+        
+        for i, axis in enumerate(AXES[:8]):
+            eph = "⚡" if axis in EPHEMERAL_AXES else "  "
+            summary.append(f"  [{i}] {axis:12s} {eph}")
+        
+        summary.append("")
+        summary.append("OSIE METAFIZYCZNE (8-14):")
+        
+        for i, axis in enumerate(AXES[8:], start=8):
+            eph = "⚡" if axis in EPHEMERAL_AXES else "  "
+            summary.append(f"  [{i}] {axis:12s} {eph}")
+        
+        summary.append("")
+        summary.append("⚡ = efemeryczna (szybko wygasa)")
+        summary.append("=" * 60)
+        
+        return "\n".join(summary)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TEST
+# ═══════════════════════════════════════════════════════════════════════════════
+
+if __name__ == "__main__":
+    print("\n" + "=" * 60)
+    print("TEST: Music Analyzer v8.0.0 (15 osi)")
+    print("=" * 60)
+    
+    analyzer = MusicAnalyzer()
+    
+    # Podsumowanie modelu
+    print(analyzer.get_axes_summary())
+    
+    # Test 1: Heavy Metal
+    print("\n[TEST 1] Heavy Metal:")
+    vec = analyzer.calculate_change_vector(['HEAVY_METAL', 'PRESTO', 'RAW'])
+    print(f"  Wektor: {vec}")
+    print(f"  Dominanta: {AXES[np.argmax(vec)]} = {np.max(vec):.1f}")
+    
+    # Test 2: Ambient
+    print("\n[TEST 2] Ambient:")
+    vec = analyzer.calculate_change_vector(['AMBIENT', 'MEDYTACYJNY', 'KOSMICZNY'])
+    print(f"  Wektor: {vec}")
+    print(f"  Dominanta: {AXES[np.argmax(vec)]} = {np.max(vec):.1f}")
+    
+    # Test 3: Info o cesze
+    print("\n[TEST 3] Info o POWER_METAL:")
+    info = analyzer.get_feature_info('POWER_METAL')
+    print(f"  {info}")
+    
+    print("\n✅ Testy zakończone!")

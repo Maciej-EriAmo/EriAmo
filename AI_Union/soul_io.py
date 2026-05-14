@@ -1,25 +1,46 @@
 # -*- coding: utf-8 -*-
 """
-soul_io.py v6.0.1-Union Fix
-Lokalizacja: /eriamo-union/src/language/soul_io.py
+soul_io.py v8.1.0-Safe
+FIX: Dodano automatyczny backup przed zapisem i walidację.
 """
 import json
 import os
 import time
-from config import Config, Colors
+import shutil  # Dodano do obsługi kopii zapasowych
+from union_config import UnionConfig as Config, Colors
 
 class SoulIO:
     def __init__(self):
-        self.filepath = Config.SOUL_FILE
+        # Spróbuj różnych lokalizacji
+        default_path = getattr(Config, 'SOUL_FILE', 'data/eriamo.soul')
+        possible_paths = [
+            'eriamo.soul',           # Główny katalog (NAJPIERW!)
+            './eriamo.soul',
+            default_path,            # Z config
+            'data/eriamo.soul',
+            '../eriamo.soul'
+        ]
+        
+        # Znajdź pierwszy istniejący plik
+        self.filepath = default_path
+        for path in possible_paths:
+            if os.path.exists(path):
+                self.filepath = path
+                print(f"{Colors.CYAN}[SoulIO] Użycie pliku: {path}{Colors.RESET}")
+                break
+
+    def _ensure_directory(self):
+        directory = os.path.dirname(self.filepath)
+        if directory and not os.path.exists(directory):
+            try:
+                os.makedirs(directory, exist_ok=True)
+            except Exception as e:
+                print(f"{Colors.RED}[SoulIO] Błąd tworzenia katalogu: {e}{Colors.RESET}")
 
     def load_stream(self):
-        """
-        Wczytuje definicje i ZWRACA słownik (dla AII v6.0.0).
-        Nie wymaga argumentu d_map_ref.
-        """
-        loaded_data = {} # Tworzymy nowy, lokalny słownik
-        
+        loaded_data = {}
         if not os.path.exists(self.filepath):
+            print(f"{Colors.YELLOW}[SoulIO] Brak pliku pamięci. Tabula Rasa.{Colors.RESET}")
             return loaded_data
             
         count = 0
@@ -30,31 +51,46 @@ class SoulIO:
                     if not line: continue
                     try:
                         data = json.loads(line)
-                        # Sprawdzamy typ rekordu (kompatybilność wsteczna i nowa)
-                        if data.get('_type') in ['@MEMORY', 'memory']:
-                            # Używamy ID jako klucza
-                            rec_id = data.get('id')
-                            if rec_id:
-                                loaded_data[rec_id] = data
-                                count += 1
+                        # ✅ FIX: Pomiń TYLKO linie META
+                        if data.get('_type') == '@META':
+                            continue
+                        
+                        # Generuj ID jeśli nie ma
+                        rec_id = data.get('id', f"Mem_{count}_{int(time.time())}")
+                        loaded_data[rec_id] = data
+                        count += 1
                     except json.JSONDecodeError:
+                        # Ignorujemy uszkodzone linie, by nie wywalić całego ładowania
                         continue
-            print(f"{Colors.GREEN}[SoulIO] Wczytano strumieniowo {count} obiektów.{Colors.RESET}")
+            print(f"{Colors.GREEN}[SoulIO] Wczytano {count} wspomnień.{Colors.RESET}")
         except Exception as e:
-            print(f"{Colors.RED}[SoulIO] Błąd odczytu: {e}{Colors.RESET}")
+            print(f"{Colors.RED}[SoulIO] Krytyczny błąd odczytu: {e}{Colors.RESET}")
             
         return loaded_data
 
     def save_stream(self, data_to_save):
-        """Metoda zapisuje duszę (nadal przyjmuje dane jako argument)."""
+        self._ensure_directory()
+        
+        # --- FIX: BACKUP DANYCH ---
+        if os.path.exists(self.filepath):
+            try:
+                backup_path = self.filepath + ".bak"
+                shutil.copy2(self.filepath, backup_path)
+            except Exception as e:
+                print(f"{Colors.YELLOW}[SoulIO] Ostrzeżenie: Nie udało się zrobić backupu ({e}){Colors.RESET}")
+
         try:
-            with open(self.filepath, 'w', encoding='utf-8') as f:
-                # Meta nagłówek
+            # Zapisz najpierw do pliku tymczasowego, żeby nie uszkodzić głównego przy crashu
+            temp_path = self.filepath + ".tmp"
+            with open(temp_path, 'w', encoding='utf-8') as f:
                 meta = {"_type": "@META", "timestamp": time.time(), "count": len(data_to_save)}
                 f.write(json.dumps(meta, ensure_ascii=False) + "\n")
                 
-                # Zapis właściwy
                 for key, val in data_to_save.items():
                     f.write(json.dumps(val, ensure_ascii=False) + "\n")
+            
+            # Jeśli zapis się udał, podmień pliki
+            os.replace(temp_path, self.filepath)
+            
         except Exception as e:
             print(f"{Colors.RED}[SoulIO] Błąd zapisu: {e}{Colors.RESET}")

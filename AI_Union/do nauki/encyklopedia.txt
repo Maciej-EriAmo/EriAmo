@@ -1,0 +1,59 @@
+Internet to globalna sieć połączonych systemów komputerowych, umożliwiająca wymianę informacji i komunikację między ludźmi na całym świecie.
+Sztuczna inteligencja (AI) to dziedzina informatyki zajmująca się tworzeniem systemów zdolnych do wykonywania zadań wymagających ludzkiej inteligencji, takich jak uczenie się czy rozwiązywanie problemów.
+Smartfon to przenośne urządzenie multimedialne łączące funkcje telefonu komórkowego i komputera kieszonkowego.
+Algorytm to skończony ciąg jasno zdefiniowanych czynności koniecznych do wykonania pewnego zadania.
+DNA to kwas deoksyrybonukleinowy, cząsteczka zawierająca instrukcje genetyczne dotyczące rozwoju i funkcjonowania organizmów żywych.
+
+Grawitacja to zjawisko naturalne polegające na wzajemnym przyciąganiu się wszystkich ciał posiadających masę.
+Czarna dziura to obszar czasoprzestrzeni, którego przyciąganie grawitacyjne jest tak silne, że nic, nawet światło, nie może go opuścić.
+Ewolucja to proces stopniowych zmian cech gatunkowych kolejnych pokoleń organizmów wskutek doboru naturalnego.
+Klimat to ogół zjawisk pogodowych na danym obszarze w wieloletnim okresie.
+Ekologia to nauka o strukturze i funkcjonowaniu przyrody, badająca oddziaływania między organizmami a ich środowiskiem.
+
+Demokracja to ustrój polityczny, w którym źródło władzy stanowi wola większości obywateli.
+Ekonomia to nauka społeczna analizująca produkcję, dystrybucję i konsumpcję dóbr oraz usług.
+Psychologia to nauka badająca mechanizmy i prawa rządzące psychiką oraz zachowaniami człowieka.
+Kultura to ogół wytworów działalności ludzkiej, zarówno materialnych, jak i niematerialnych.
+Globalizacja to proces zacieśniania współpracy i zależności między państwami, społeczeństwami i gospodarkami świata.
+
+Elektryczność to zbiór zjawisk fizycznych związanych z obecnością i przepływem ładunków elektrycznych.
+Energia jądrowa to energia wydzielana podczas przemian jądrowych, wykorzystywana m.in. w elektrowniach.
+Robot to urządzenie techniczne przeznaczone do automatycznego wykonywania określonych czynności.
+Programowanie to proces projektowania, tworzenia, testowania i utrzymywania kodu źródłowego programów komputerowych.
+Baza danych to zorganizowany zbiór danych, przechowywany w systemie komputerowym.
+
+Wszechświat to cała czasoprzestrzeń i wypełniająca ją materia oraz energia.
+Galaktyka to duży, grawitacyjnie związany układ gwiazd, pyłu i gazu międzygwiazdowego oraz ciemnej materii.
+Planeta to ciało niebieskie krążące wokół gwiazdy, o wystarczającej masie, by uzyskać kształt kulisty.
+Atom to podstawowy składnik materii, składający się z jądra i chmury elektronowej.
+Kwant to najmniejsza porcja, jaką może mieć lub o jaką może zmienić się dana wielkość fizyczna.
+
+Mózg to centralny organ układu nerwowego, sterujący większością funkcji życiowych i procesami poznawczymi.
+Gen to podstawowa jednostka dziedziczności, fragment DNA kodujący informację o budowie białka.
+Wirus to niewielka cząstka zakaźna, która może namnażać się tylko wewnątrz żywych komórek organizmów.
+Szczepionka to preparat biologiczny, który po wprowadzeniu do organizmu wywołuje odporność na daną chorobę.
+Medycyna to nauka i sztuka leczenia chorób oraz zapobiegania im.
+
+Media to środki masowego przekazu, takie jak prasa, radio, telewizja i internet.
+Social media to media społecznościowe, umożliwiające użytkownikom tworzenie i wymianę treści.
+Fake news to nieprawdziwa lub wprowadzająca w błąd informacja, rozpowszechniana w celu dezinformacji.
+Marketing to proces planowania i realizacji koncepcji, cen, promocji i dystrybucji pomysłów, towarów i usług.
+Pieniądz to powszechnie akceptowany środek wymiany, miernik wartości i środek płatniczy.
+
+Samolot to statek powietrzny cięższy od powietrza, utrzymujący się w atmosferze dzięki sile nośnej.
+Rakieta to pojazd napędzany silnikiem rakietowym, zdolny do lotu w atmosferze i w przestrzeni kosmicznej.
+Satelita to obiekt krążący wokół ciała niebieskiego, naturalny (np. Księżyc) lub sztuczny.
+Teleskop to przyrząd optyczny służący do obserwacji odległych obiektów.
+Mikroskop to przyrząd służący do obserwacji małych obiektów, niewidocznych gołym okiem.
+
+Wolność to możliwość podejmowania decyzji zgodnie z własną wolą, bez przymusu.
+Sprawiedliwość to uczciwe, bezstronne traktowanie wszystkich ludzi i poszanowanie ich praw.
+Prawda to zgodność sądu z rzeczywistym stanem rzeczy.
+Szczęście to trwałe zadowolenie z życia połączone z pogodą ducha i optymizmem.
+Przyjaźń to bliska, serdeczna relacja między ludźmi, oparta na wzajemnej życzliwości i zaufaniu.
+
+Muzyka to sztuka organizacji struktur dźwiękowych w czasie.
+Literatura to ogół piśmiennictwa, a w węższym sensie dzieła artystyczne.
+Film to utwór audiowizualny składający się z serii obrazów, tworzących wrażenie ruchu.
+Teatr to dziedzina sztuki, w której aktorzy przedstawiają historię na żywo przed publicznością.
+Fotografia to technika utrwalania obrazu za pomocą światła.

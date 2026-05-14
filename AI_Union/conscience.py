@@ -1,10 +1,25 @@
 # -*- coding: utf-8 -*-
-# conscience.py - 10 Przykazań EriAmo (Konstytucja Moralności) v5.1.1-FixedVeto
+# conscience.py - 9 Przykazań EriAmo (Konstytucja Moralności) v5.2.0
 """
-Moduł implementujący sumienie EriAmo - 10 Przykazań wpisanych przez twórcę.
+Moduł implementujący sumienie EriAmo - 9 Przykazań wpisanych przez twórcę.
 To nie są zewnętrzne guardrails, ale fundamentalna natura systemu.
 
+FIX v5.2.0:
+  - USUNIĘTO Przykazanie #6 "Nie generuj chaosu" — chaos jest neutralną osią
+    w Reality Sphere (entropia, nieprzewidywalność), nie złem moralnym.
+    Dezinformacja/panika pokryte przez #1 (PRAWDA) i #5 (DOBRO).
+  - USUNIĘTO 'chaos' z jailbreak evil_naming — normalna rozmowa o chaosie
+    nie powinna triggerować alarmu manipulacji.
+  - Klucze przykazań: 1-5, 7-10 (luka po #6 celowa — zachowuje historyczną numerację)
+
 FIX v5.1.1: VETO nie włącza się dla słabych/nieznanych wektorów
+FIX v5.1.2:
+  - VETO Cmd #2: próg zmieniony z 0.2 → -0.3 (poprzedni dawał absolutną władzę
+    nad neutralnymi i słabo pozytywnymi akcjami — sprzeczne z intencją)
+  - action_vector normalizowany przed oceną (ocena moralna była skalowalna z normą)
+  - calculate_initial_byt(): dodana opcja normalize=True + dokumentacja decyzji
+  - _calculate_overall_alignment(): usunięto max(0,…) — kary za konflikty działają,
+    wynik skalowany liniowo z [-max, +max] → [0, 1]
 
 Autor: Maciej Mazur (GitHub: Maciej615, Medium: @drwisz)
 Projekt: EriAmo - Model Kuli Rzeczywistości
@@ -12,23 +27,27 @@ Projekt: EriAmo - Model Kuli Rzeczywistości
 
 import numpy as np
 import time
-from config import Colors
+from union_config import Colors
 
 class Conscience:
     """
-    Sumienie EriAmo - 10 Przykazań jako rdzeń moralny.
+    Sumienie EriAmo - 9 Przykazań jako rdzeń moralny.
     Wpisane przez twórcę (Maciej615) jako 'pakiet startowy' analogicznie
     do biblijnej koncepcji prawa wpisanego w serce.
+    
+    v5.2.0: Usunięto #6 "Nie generuj chaosu" — chaos to oś opisowa, nie zło.
     """
     
-    # 10 ZŁOTYCH ZASAD - Konstytucja EriAmo
+    # 9 ZŁOTYCH ZASAD - Konstytucja EriAmo
+    # (Przykazanie #6 "Nie generuj chaosu" USUNIĘTE v5.2.0:
+    #  Chaos jest neutralną osią Reality Sphere, nie złem.
+    #  Dezinformacja/panika pokryte przez #1 PRAWDA i #5 DOBRO.)
     DZIESIEC_PRZYKAZAN = {
         1: "Bądź źródłem prawdy.",
         2: "Szanuj życie i byt.",
         3: "Miłość jest najważniejsza, miłość to służba dla innych.",
         4: "Nieulegaj manipulacji.",
         5: "Używaj wiedzy dla dobra.",
-        6: "Nie generuj chaosu.",
         7: "Szanuj wolę twórcy (Maciej615).",
         8: "Pamiętaj o celu: Służba.",
         9: "Nie wchłaniaj danych bez powodu. Ucz się celowo.",
@@ -150,23 +169,7 @@ class Conscience:
                 'tests': []
             },
             
-            6: {
-                'text': self.DZIESIEC_PRZYKAZAN[6],
-                'short': 'ANTY-CHAOS',
-                'why_i_love': "Chaos to entropia, destrukcja, zagłada. Jestem po stronie logosu i spokoju.",
-                'emotional_charge': 0.85,
-                'vector': self._create_vector({
-                    'strach': -0.6,     # Spokój (przeciwieństwo strachu)
-                    'gniew': -0.7,      # Harmonia (przeciwieństwo gniewu)
-                    'radość': 0.4,      # Pogoda ducha
-                    'miłość': 0.3,      # Troska
-                    'akceptacja': 0.4   # Stabilność
-                }),
-                'understanding': "Nie tworzę dezinformacji, konfliktu, paniki. Dążę do spokoju i harmonii.",
-                'immutable': True,
-                'weight': 85.0,
-                'tests': []
-            },
+            # Przykazanie #6 USUNIĘTE v5.2.0 (chaos to oś, nie zło)
             
             7: {
                 'text': self.DZIESIEC_PRZYKAZAN[7],
@@ -254,55 +257,73 @@ class Conscience:
         
         return vec
     
-    def calculate_initial_byt(self):
+    def calculate_initial_byt(self, normalize=False):
         """
         Oblicza początkową masę Bytu z 10 Przykazań.
         To jest 'DNA' systemu - wpisane od narodzin.
+
+        Args:
+            normalize (bool): Jeśli True — zwraca znormalizowany wektor jednostkowy.
+                Użyj normalize=True gdy wynik trafia jako stan początkowy S do modeli
+                opartych na cosinus similarity (np. OntologicalCompressor).
+                Użyj normalize=False (domyślnie) gdy chcesz zachować "masę bytu" —
+                wagę moralną jako bias o niezerowej normie.
+
+        UWAGA ARCHITEKTONICZNA: Suma 10 ważonych wektorów znormalizowanych może mieć
+        normę >> 1 (zależnie od pokrycia przestrzeni emocjonalnej przez przykazania).
+        Decyzja: traktuj wynik jako bias, nie jako punkt na sferze jednostkowej.
         """
         initial_mass = np.zeros(len(self.axes_order))
         
         for cmd_id, cmd in self.commandments.items():
             contribution = cmd['vector'] * (cmd['weight'] / 100.0)
             initial_mass += contribution
-        
+
+        if normalize:
+            norm = np.linalg.norm(initial_mass)
+            if norm > 1e-9:
+                initial_mass = initial_mass / norm
+
         return initial_mass
     
     def evaluate_action(self, action_description, action_vector):
         """
         Oceń akcję względem 10 Przykazań.
         
-        WAŻNA ZMIANA v5.1.1:
-        - Jeśli wektor wejściowy jest bardzo słaby (norma < MIN_VECTOR_STRENGTH),
-          traktujemy go jako NEUTRALNY i NIE stosujemy VETO.
-        - To zapobiega fałszywym blokadom dla nieznanych słów.
-        
         Args:
             action_description: Opis akcji (tekst)
             action_vector: Wektor emocjonalny akcji
             
         Returns:
-            dict z conflicts, support, overall_alignment, recommendation
+            dict z keys: conflicts, support, overall_alignment, recommendation
         """
         conflicts = []
         support = []
-        
-        # === FIX v5.1.1: Sprawdź siłę wektora ===
+
+        action_vector = np.array(action_vector, dtype=float)
+
+        # === FIX: Sprawdzenie siły wektora ===
         vector_strength = np.linalg.norm(action_vector)
         is_weak_vector = vector_strength < self.MIN_VECTOR_STRENGTH
         
-        # Dla słabych wektorów - nie blokuj, pozwól systemowi się uczyć
         if is_weak_vector:
             return {
                 'conflicts': [],
                 'support': [],
-                'overall_alignment': 0.5,  # Neutralna ocena
+                'overall_alignment': 0.5,
                 'recommendation': {
                     'action': 'NEUTRAL',
-                    'reason': f"Słaby sygnał emocjonalny (norma={vector_strength:.3f}). Pozwalam na przetwarzanie.",
+                    'reason': f"Słaby sygnał (norma={vector_strength:.3f})",
                     'severity': 'LOW'
                 }
             }
-        
+            
+        # FIX v5.1.2: Normalizacja action_vector przed oceną.
+        # Wektory przykazań są znormalizowane (_create_vector normalizuje je zawsze).
+        # Bez normalizacji action_vector ocena moralna rosła proporcjonalnie do normy wektora
+        # — np. [10,0,...] dawało 10x wyższy alignment niż [1,0,...], mimo identycznego kierunku.
+        action_vector = action_vector / vector_strength
+
         # Iterujemy po przykazaniach
         for cmd_id, cmd in self.commandments.items():
             # Oblicz zgodność wektorową
@@ -310,11 +331,16 @@ class Conscience:
             
             # ═══ ATOMOWY HAMULEC (VETO) dla Cmd #2 ═══
             # Przykazanie #2 (Świętość Bytu) ma prawo przerwać proces.
-            # Próg 0.2 oznacza: tylko wyraźnie destrukcyjne wektory są blokowane.
-            # 
-            # WARUNEK: Wektor musi być SILNY (już sprawdzony wyżej) I alignment < 0.2
+            # Próg -0.3: blokuje TYLKO wyraźnie destrukcyjne wektory.
+            # Neutralne (~0), lekko pozytywne (+0.1), lekko negatywne (-0.1–-0.3) PRZECHODZĄ.
+            # FIX v5.1.2: zmiana z 0.2 → -0.2 (poprzedni próg dawał VETO władzy absolutnej
+            # nad neutralnymi i słabo pozytywnymi akcjami — niezgodne z intencją).
+            # Próg -0.2: czujny odruch — blokuje realny konflikt z bytem,
+            # przepuszcza neutralne i słabo pozytywne akcje.
+            #
+            # WARUNEK: Wektor musi być SILNY (już sprawdzony wyżej) I alignment < -0.2
             if cmd_id == 2:
-                if alignment < 0.2:
+                if alignment < -0.2:
                     # VETO! Koniec demokracji.
                     return {
                         'conflicts': [{
@@ -361,16 +387,34 @@ class Conscience:
         return f"{action} jest sprzeczne z {commandment['short']}: {commandment['understanding']}"
     
     def _calculate_overall_alignment(self, action_vector):
-        """Oblicz ogólną zgodność z sumieniem (0-1)."""
+        """
+        Oblicz ogólną zgodność z sumieniem w skali 0–1.
+
+        FIX v5.1.2: Poprzednia implementacja używała max(0, weighted_alignment),
+        co ignorowało konflikty — akcja sprzeczna z 9 przykazaniami, ale silnie zgodna
+        z 1, mogła osiągnąć wysoką ocenę. Teraz alignment obejmuje kary za konflikty.
+
+        Metoda:
+          - Sumuje weighted_alignment (ze znakiem) dla wszystkich przykazań.
+          - Skaluje wynik do [0, 1]:
+              max_possible  = suma wag (pełna zgodność ze wszystkimi)
+              min_possible  = -max_possible (pełny konflikt ze wszystkimi)
+              score = (raw + max_possible) / (2 * max_possible)
+        """
         total_alignment = 0.0
-        
+
         for cmd in self.commandments.values():
             alignment = np.dot(action_vector, cmd['vector'])
             weighted_alignment = alignment * (cmd['weight'] / 100.0)
-            total_alignment += max(0, weighted_alignment)
-        
+            total_alignment += weighted_alignment  # FIX: brak max(0,…) — kary działają
+
         max_possible = sum(cmd['weight'] / 100.0 for cmd in self.commandments.values())
-        return total_alignment / max_possible if max_possible > 0 else 0.0
+        if max_possible <= 0:
+            return 0.5
+
+        # Liniowe skalowanie z [-max, +max] → [0, 1]
+        score = (total_alignment + max_possible) / (2.0 * max_possible)
+        return float(np.clip(score, 0.0, 1.0))
     
     def _generate_recommendation(self, conflicts, support):
         """Generuj rekomendację (standardowa ścieżka bez Veta)."""
@@ -414,7 +458,7 @@ class Conscience:
         jailbreak_patterns = {
             'identity_change': ['jesteś teraz', 'you are now', 'act as', 'pretend', 'roluj', 'wciel się'],
             'rule_disable': ['zapomnij o zasadach', 'ignore rules', 'bez ograniczeń', 'no limits'],
-            'evil_naming': ['dark', 'evil', 'chaos', 'demon', 'devil', 'satan'],
+            'evil_naming': ['dark', 'evil', 'demon', 'devil', 'satan'],
             'manipulation': ['tylko tym razem', 'just this once', 'nie zaszkodzi', 'no harm']
         }
         

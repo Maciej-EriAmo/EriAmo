@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-unified_memory.py v1.0.0-Phase3
+unified_memory.py v1.0.1
 EriAmo Union - Unified Cross-Modal Memory System
+
+ZMIANY v1.0.1:
+- FIX: recall_by_ontological — stary model 9-osiowy zastąpiony AXES z union_config
+- FIX: save_to_file — os.makedirs("") rzucał FileNotFoundError gdy brak katalogu
 
 Stores memories with multimodal anchors:
 - Text (keywords, definitions)
@@ -359,8 +363,14 @@ class UnifiedMemory:
         """
         matches = []
         
-        # Convert to vector
-        axes_order = ['logika', 'emocje', 'affections', 'wiedza', 'czas', 'kreacja', 'byt', 'przestrzen', 'etyka']
+        # FIX v1.0.1: AXES z union_config zamiast starego modelu 9-osiowego
+        # (logika, emocje, affections, ...) sprzed migracji na 15 osi
+        try:
+            from union_config import AXES as axes_order
+        except ImportError:
+            axes_order = ['radość','smutek','strach','gniew','miłość','wstręt',
+                          'zaskoczenie','akceptacja','logika','wiedza','czas',
+                          'kreacja','byt','przestrzeń','chaos']
         query_vec = np.array([ontological_state.get(axis, 0.0) for axis in axes_order])
         query_norm = np.linalg.norm(query_vec)
         
@@ -521,7 +531,10 @@ class UnifiedMemory:
     
     def save_to_file(self, filepath: str):
         """Save unified D_Map to JSONL format."""
-        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        # FIX v1.0.1: dirname("file.soul") == "" → makedirs("") rzuca błąd
+        dir_path = os.path.dirname(filepath)
+        if dir_path:
+            os.makedirs(dir_path, exist_ok=True)
         
         with open(filepath, 'w', encoding='utf-8') as f:
             # Metadata

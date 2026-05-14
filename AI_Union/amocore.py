@@ -1,10 +1,17 @@
-# amocore_v59.py
+# amocore_v596.py
 # -*- coding: utf-8 -*-
 """
-System Ontologicznej Pamięci Muzyki v5.9.4 [FULL FIX]
-- FIX: Przywrócono brakujące funkcje (interpret_improv_for_composition, CuriosityEngine).
-- FIX: Threading RLock (zapobiega deadlockom).
-- TRYB: UNBOUNDED (Historia Liniowa)
+System Ontologicznej Pamięci Muzyki v5.9.6
+- NOWE v5.9.6: Wprowadzono autouważność (self-awareness) w MusicMemory:
+  - Nowa metoda _self_reflect(): Wywoływana po każdym śnie, analizuje D_Map
+    i H_log, loguje dominujące wzorce, dostosowuje sleep_interval na podstawie
+    'chaos' w EriAmoCore (jeśli dostępny).
+  - Integracja z EriAmoCore: _self_reflect() pobiera emocje z core (jeśli podany).
+- FIX v5.9.6: _extract_pattern_key() — dodano więcej features (pitch_variance,
+  syncopation_feel) dla bogatszych kluczy wzorców.
+- CLEANUP v5.9.6: Usunięto martwy kod w apply_time_based_decay() — teraz
+  implementuje prosty decay na H_log (starsze wpisy tracą wagę).
+
 """
 import numpy as np
 import threading
@@ -22,20 +29,9 @@ import pandas as pd
 # DEFINICJA ONTOLOGICZNA: 9 WEKTORÓW DUSZY
 # =============================================================================
 
-AXES_LIST = [
-    "logika",       # 0: racjonalność ↔ intuicja
-    "emocje",       # 1: pobudzenie emocjonalne
-    "affections",   # 2: pamięć emocjonalna
-    "wiedza",       # 3: zgromadzona wiedza
-    "czas",         # 4: percepcja tempa
-    "kreacja",      # 5: potencjał twórczy
-    "byt",          # 6: egzystencja
-    "przestrzen",   # 7: percepcja przestrzeni
-    "improwizacja"  # 8: swoboda vs reguły
-]
-
-EPHEMERAL_AXES = ["emocje", "czas"]
-PERSISTENT_AXES = ["affections", "logika", "wiedza", "kreacja", "byt", "przestrzen", "improwizacja"]
+# OSIE importowane z union_config.py (Single Source of Truth)
+# System używa teraz ujednoliconego modelu 15 osi
+from union_config import AXES_LIST, EPHEMERAL_AXES, PERSISTENT_AXES, DIMENSION
 ONTOLOGICAL_THRESHOLD = 0.98
 
 # =============================================================================
@@ -52,12 +48,14 @@ class MusicMemory:
         'pitch_range', 'second_pitch_class', 'chromatic_density', 'key_tonic', 'key_mode'
     ]
     
-    def __init__(self, sleep_interval: float = 300.0):
+    def __init__(self, sleep_interval: float = 300.0, core=None):
+        self.core = core  # NOWE: Referencja do EriAmoCore dla autouważności
         os.makedirs(self.DATA_DIR, exist_ok=True)
         self.H_log = []
         self.D_Map = {}
         self.sleep_interval = sleep_interval
         self.running = True
+        self._lock = threading.RLock()
         self.is_sleeping = False
         self.last_sleep_time = time.time()
         self.sleep_count = 0
@@ -94,45 +92,83 @@ class MusicMemory:
         threading.Thread(target=cycle, daemon=True).start()
     
     def _sleep(self):
-        if self.is_sleeping: return
-        self.is_sleeping = True
-        
-        # Konsolidacja (uproszczona dla bezpieczeństwa)
-        recent = self.H_log[-20:]
+        with self._lock:
+            if self.is_sleeping:
+                return
+            self.is_sleeping = True
+        # Snapshot H_log pod lockiem, konsolidacja na kopii
+        with self._lock:
+            recent = list(self.H_log[-20:])
         for exp in recent:
             key = self._extract_pattern_key(exp)
-            if key in self.D_Map:
-                self.D_Map[key]['weight'] = min(self.D_Map[key]['weight'] + 1.0, 100.0)
-            else:
-                self.D_Map[key] = {
-                    'features': exp.get('features', {}),
-                    'weight': 1.0,
-                    'created_at': datetime.now().isoformat()
-                }
+            with self._lock:
+                if key in self.D_Map:
+                    self.D_Map[key]['weight'] = min(self.D_Map[key]['weight'] + 1.0, 100.0)
+                else:
+                    self.D_Map[key] = {
+                        'features': exp.get('features', {}),
+                        'weight': 1.0,
+                        'created_at': datetime.now().isoformat()
+                    }
         self._save_memory()
-        
-        self.last_sleep_time = time.time()
-        self.experiences_since_sleep = 0
-        self.is_sleeping = False
+        with self._lock:
+            self.last_sleep_time = time.time()
+            self.experiences_since_sleep = 0
+            self.is_sleeping = False
         print(f"\033[92m[MEMORY] Sen zakończony. Wzorców: {len(self.D_Map)}\033[0m")
+        
+        # NOWE: Autouważność po śnie
+        self._self_reflect()
+    
+    def _self_reflect(self):
+        """
+        Mechanizm autouważności: Analizuje D_Map i H_log, loguje dominujące
+        wzorce, dostosowuje sleep_interval na podstawie 'chaos' z core.
+        """
+        if not self.D_Map:
+            print("\033[93m[REFLECT] Pamięć pusta — brak wzorców do analizy.\033[0m")
+            return
+        
+        # Analiza dominujących wzorców
+        dominant_pattern = max(self.D_Map.items(), key=lambda x: x[1]['weight'])[0]
+        reflection = f"[SELF-REFLECT] Dominujący wzorzec: {dominant_pattern} (waga: {self.D_Map[dominant_pattern]['weight']:.2f}). "
+        
+        # Dostosowanie na podstawie emocji z core (jeśli dostępny)
+        if self.core:
+            emotions = self.core.get_emotions()
+            chaos = emotions.get('chaos', 0)
+            if chaos > 0.5:
+                self.sleep_interval = max(60, self.sleep_interval - 30)
+                reflection += "Zwiększam częstotliwość snu (chaos ↑)."
+            elif chaos < 0.2:
+                self.sleep_interval = min(600, self.sleep_interval + 60)
+                reflection += "Zmniejszam częstotliwość snu (stabilność ↑)."
+            else:
+                reflection += "Stan zrównoważony."
+        
+        print(f"\033[94m{reflection}\033[0m")
     
     def _extract_pattern_key(self, exp):
         feat = exp.get('features', {})
         parts = []
-        for k in ['repetition_density', 'rhythmic_regularity']:
+        for k in ['repetition_density', 'rhythmic_regularity', 'pitch_variance', 'syncopation_feel']:
             val = feat.get(k, 0.5)
             cat = 'H' if val > 0.66 else ('L' if val < 0.33 else 'M')
             parts.append(f"{k[:3]}:{cat}")
         return "|".join(parts)
 
     def record_experience(self, features: dict, source: str = "analysis"):
-        self.H_log.append({
-            'timestamp': datetime.now().isoformat(),
-            'features': features,
-            'source': source
-        })
-        self.experiences_since_sleep += 1
-        if self.experiences_since_sleep > 10: self._sleep()
+        with self._lock:
+            self.H_log.append({
+                'timestamp': datetime.now().isoformat(),
+                'features': features,
+                'source': source
+            })
+            self.experiences_since_sleep += 1
+            trigger_sleep = self.experiences_since_sleep > 10
+        # _sleep() poza lockiem — sam bierze locka wewnętrznie
+        if trigger_sleep:
+            self._sleep()
 
     def get_consolidated_style(self) -> dict:
         if not self.D_Map: return {f: 0.5 for f in self.MUSICAL_FEATURES}
@@ -167,10 +203,25 @@ class MusicMemory:
         self._save_memory()
         print(f"\033[93m[MEMORY] Pamięć zapisana. Dobranoc.\033[0m")
 
+    def apply_time_based_decay(self):
+        """
+        CLEANUP v5.9.6: Implementacja decay — starsze wpisy w H_log tracą wagę.
+        """
+        with self._lock:
+            current_time = time.time()
+            for entry in self.H_log:
+                age = current_time - entry.get('timestamp', current_time)
+                decay_factor = math.exp(-age / (3600 * 24))  # Decay dzienny
+                entry['weight'] = entry.get('weight', 1.0) * decay_factor
+
+
 _music_memory = None
-def get_music_memory() -> MusicMemory:
+_music_memory_lock = threading.Lock()
+def get_music_memory(core=None) -> MusicMemory:
     global _music_memory
-    if _music_memory is None: _music_memory = MusicMemory()
+    with _music_memory_lock:
+        if _music_memory is None:
+            _music_memory = MusicMemory(core=core)
     return _music_memory
 
 
@@ -294,8 +345,16 @@ class EriAmoCore:
         return filepath
         
     def apply_time_based_decay(self):
-        # Placeholder dla kompatybilności
-        pass
+        """
+        CLEANUP v5.9.6: Implementacja decay — ephemeral axes tracą 5% co cykl.
+        """
+        with self.lock:
+            for axis in EPHEMERAL_AXES:
+                if axis in self.AXES:
+                    i = self.AXES.index(axis)
+                    self.vector.values[i] *= 0.95
+            self.last_decay_time = time.time()
+            self.decay_cycle_count += 1
 
 
 # =============================================================================
@@ -306,6 +365,8 @@ def interpret_improv_for_composition(improv_value: float) -> dict:
     """Interpretuje wartość osi improwizacji dla kompozytora."""
     normalized = (improv_value + 100) / 200  # -100→0, +100→1
     normalized = max(0, min(1, normalized))
+    
+    # FIX: Upewniono się, że słownik jest poprawnie zamknięty
     return {
         "freedom_level": normalized,
         "allow_chromatic": normalized > 0.4,
@@ -315,7 +376,7 @@ def interpret_improv_for_composition(improv_value: float) -> dict:
         "syncopation_probability": normalized * 0.6,
         "rubato_allowed": normalized > 0.3,
         "ornamentation_density": normalized,
-        "allow_large_leaps": normalized > 0.5,
+        "allow_large_leaps": normalized > 0.5
     }
 
 # =============================================================================
@@ -328,12 +389,10 @@ class CuriosityEngine:
     WEIGHT_EMOCJE = 0.30
     WIEDZA_OPTIMUM = 50.0
     WIEDZA_SPREAD = 40.0
-    
+
     def __init__(self):
-        self.boredom_counter = {}
-        self.discovery_cooldown = 0
-        self.last_genres = []
-        
+        pass
+
     def compute_curiosity(self, kreacja: float, wiedza: float, emocje: float) -> dict:
         kreacja_component = self._normalize(kreacja) * 100
         wiedza_norm = self._normalize(wiedza) * 100
@@ -356,7 +415,10 @@ class CuriosityEngine:
         return max(0, min(1, (value + 100) / 200))
 
 _curiosity_engine = None
+_curiosity_engine_lock = threading.Lock()
 def get_curiosity_engine() -> CuriosityEngine:
     global _curiosity_engine
-    if _curiosity_engine is None: _curiosity_engine = CuriosityEngine()
+    with _curiosity_engine_lock:
+        if _curiosity_engine is None:
+            _curiosity_engine = CuriosityEngine()
     return _curiosity_engine

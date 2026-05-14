@@ -1,259 +1,315 @@
-# genre_definitions.py
+# genre_definitions.py v2.0.0 [15-AXES MODEL]
 # -*- coding: utf-8 -*-
 """
-Definicje Gatunków Muzycznych EriAmo v5.9
+Definicje Gatunków Muzycznych EriAmo Union v2.0.0
 
-Każdy gatunek ma:
-- opis: Krótki opis stylistyczny
-- f_intencja_wektor: Wektor wpływu na duszę przy komponowaniu
+Każdy gatunek jest zdefiniowany jako wektor 15-wymiarowy:
+- Osie 0-7: Plutchik (radość, smutek, strach, gniew, miłość, wstręt, zaskoczenie, akceptacja)
+- Osie 8-14: Metafizyczne (logika, wiedza, czas, kreacja, byt, przestrzeń, chaos)
 
-UWAGA: Wpływ na 'emocje' jest EFEMERYCZNY (wygaśnie),
-       wpływ na 'affections' jest TRWAŁY (pamięć głęboka)
+Wartości w zakresie [-10, +10], gdzie:
+- 0 = neutralny
+- +10 = maksymalna obecność cechy
+- -10 = maksymalna opozycja/brak cechy
 """
 
-GENRE_DEFINITIONS = {
+import numpy as np
+from typing import Dict, List, Optional, Tuple
+from union_config import AXES, DIMENSION
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# INDEKSY OSI (dla czytelności)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Plutchik
+IDX_RADOSC = 0
+IDX_SMUTEK = 1
+IDX_STRACH = 2
+IDX_GNIEW = 3
+IDX_MILOSC = 4
+IDX_WSTRET = 5
+IDX_ZASKOCZENIE = 6
+IDX_AKCEPTACJA = 7
+
+# Metafizyczne
+IDX_LOGIKA = 8
+IDX_WIEDZA = 9
+IDX_CZAS = 10
+IDX_KREACJA = 11
+IDX_BYT = 12
+IDX_PRZESTRZEN = 13
+IDX_CHAOS = 14
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DEFINICJE GATUNKÓW (wektory 15D)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+GENRE_DEFINITIONS: Dict[str, np.ndarray] = {
     
-    # === FORMY KLASYCZNE ===
+    # ═══════════════════════════════════════════════════════════════════════════
+    # MUZYKA KLASYCZNA
+    # ═══════════════════════════════════════════════════════════════════════════
     
-    "MENUET": {
-        "opis": "Taniec barokowy w metrum 3/4. Elegancki, symetryczny.",
-        "f_intencja_wektor": {
-            "logika": 2.5,       # Struktura taneczna
-            "affections": 1.5,   # Delikatna radość (TRWAŁE)
-            "czas": 1.0,         # Umiarkowane tempo
-            "wiedza": 3.0,       # Wymaga znajomości formy
-            "kreacja": 3.0
-        }
-    },
+    "BAROQUE": np.array([
+        2.0,   # radość (ornamentyka)
+        0.0,   # smutek
+        0.0,   # strach
+        0.0,   # gniew
+        1.0,   # miłość (piękno)
+        0.0,   # wstręt
+        1.0,   # zaskoczenie (kontrapunkt)
+        3.0,   # akceptacja (porządek)
+        7.0,   # logika (fuga, kontrapunkt)
+        5.0,   # wiedza (tradycja)
+        2.0,   # czas (allegro typowe)
+        4.0,   # kreacja (ornamentyka)
+        3.0,   # byt (instrumenty akustyczne)
+        2.0,   # przestrzeń (kościoły)
+        -3.0,  # chaos (porządek)
+    ]),
     
-    "KANON": {
-        "opis": "Ścisła polifonia imitacyjna. Logika jako fundament.",
-        "f_intencja_wektor": {
-            "logika": 7.0,       # Maksymalna struktura
-            "wiedza": 5.0,       # Kontrapunkt
-            "affections": 0.0,   # Neutralne emocjonalnie
-            "czas": 1.0,
-            "kreacja": 4.0
-        }
-    },
+    "KLASYCYZM": np.array([
+        4.0,   # radość (harmonia, proporcje)
+        0.0,   # smutek
+        0.0,   # strach
+        0.0,   # gniew
+        2.0,   # miłość
+        0.0,   # wstręt
+        0.0,   # zaskoczenie
+        5.0,   # akceptacja (równowaga)
+        6.0,   # logika (forma sonatowa)
+        4.0,   # wiedza
+        3.0,   # czas (umiarkowane tempa)
+        2.0,   # kreacja
+        3.0,   # byt
+        3.0,   # przestrzeń (sale koncertowe)
+        -4.0,  # chaos (harmonia)
+    ]),
     
-    "FUGA": {
-        "opis": "Złożona forma polifoniczna z tematem i odpowiedziami.",
-        "f_intencja_wektor": {
-            "logika": 8.0,       # Najwyższa złożoność
-            "wiedza": 6.0,       # Mistrzowska forma
-            "kreacja": 5.0,
-            "affections": 1.0,   # Subtelna satysfakcja
-            "czas": 0.0
-        }
-    },
+    "ROMANTYZM": np.array([
+        3.0,   # radość
+        5.0,   # smutek (tęsknota)
+        2.0,   # strach
+        3.0,   # gniew (pasja)
+        7.0,   # miłość (centralny motyw)
+        0.0,   # wstręt
+        3.0,   # zaskoczenie (dynamika)
+        2.0,   # akceptacja
+        3.0,   # logika
+        5.0,   # wiedza (erudycja)
+        4.0,   # czas (rubato, swoboda)
+        6.0,   # kreacja (indywidualizm)
+        4.0,   # byt (wielkie orkiestry)
+        6.0,   # przestrzeń (symfoniczny rozmach)
+        2.0,   # chaos (napięcia harmoniczne)
+    ]),
     
-    "MARSZ": {
-        "opis": "Silny puls w metrum 4/4. Wojskowy charakter.",
-        "f_intencja_wektor": {
-            "logika": 2.0,       # Prosta struktura
-            "czas": 5.0,         # Mocne tempo
-            "emocje": 4.0,       # Podniosłość (EFEMERYCZNE)
-            "affections": 2.0,   # Duma (TRWAŁE)
-            "kreacja": 2.0
-        }
-    },
+    "IMPRESSIONISM": np.array([
+        2.0,   # radość
+        3.0,   # smutek (melancholia)
+        0.0,   # strach
+        0.0,   # gniew
+        3.0,   # miłość (delikatność)
+        0.0,   # wstręt
+        4.0,   # zaskoczenie (barwy)
+        4.0,   # akceptacja (kontemplacja)
+        2.0,   # logika (rozmycie formy)
+        4.0,   # wiedza
+        -1.0,  # czas (zawieszenie)
+        7.0,   # kreacja (nowatorstwo)
+        2.0,   # byt
+        8.0,   # przestrzeń (atmosfera, światło)
+        1.0,   # chaos (ambiguity)
+    ]),
     
-    # === EKSPRESJA EMOCJONALNA ===
+    # ═══════════════════════════════════════════════════════════════════════════
+    # JAZZ
+    # ═══════════════════════════════════════════════════════════════════════════
     
-    "LAMENT": {
-        "opis": "Pieśń żałobna. Chromatyka, opadające linie melodyczne.",
-        "f_intencja_wektor": {
-            "affections": -6.0,  # Głęboki smutek (TRWAŁE!)
-            "emocje": -3.0,      # Chwilowy smutek (wygaśnie)
-            "czas": -3.0,        # Wolne tempo
-            "kreacja": 5.0,      # Wysoka ekspresja
-            "przestrzen": 2.0    # Intymność
-        }
-    },
+    "JAZZ_SWING": np.array([
+        6.0,   # radość (energia)
+        0.0,   # smutek
+        0.0,   # strach
+        0.0,   # gniew
+        2.0,   # miłość
+        0.0,   # wstręt
+        3.0,   # zaskoczenie (improwizacja)
+        4.0,   # akceptacja (groove)
+        5.0,   # logika (harmonia)
+        3.0,   # wiedza
+        5.0,   # czas (swing rhythm)
+        6.0,   # kreacja (improwizacja)
+        4.0,   # byt (big band)
+        3.0,   # przestrzeń
+        2.0,   # chaos (spontaniczność)
+    ]),
     
-    "REQUIEM": {
-        "opis": "Msza żałobna. Wzniosłość i transcendencja.",
-        "f_intencja_wektor": {
-            "affections": -5.0,  # Głęboki żal (TRWAŁE)
-            "etyka": 3.0,        # Refleksja moralna
-            "przestrzen": 4.0,   # Sakralność
-            "wiedza": 4.0,       # Tradycja liturgiczna
-            "kreacja": 4.0
-        }
-    },
+    "JAZZ_BEBOP": np.array([
+        3.0,   # radość
+        1.0,   # smutek
+        0.0,   # strach
+        2.0,   # gniew (intensywność)
+        1.0,   # miłość
+        0.0,   # wstręt
+        5.0,   # zaskoczenie (złożoność)
+        2.0,   # akceptacja
+        7.0,   # logika (skomplikowana harmonia)
+        5.0,   # wiedza (wirtuozeria)
+        7.0,   # czas (szybkie tempa)
+        8.0,   # kreacja (improwizacja solowa)
+        3.0,   # byt (małe składy)
+        2.0,   # przestrzeń
+        4.0,   # chaos (chromatyzmy)
+    ]),
     
-    "EKSTAZA": {
-        "opis": "Muzyka transowa, ekstaza duchowa.",
-        "f_intencja_wektor": {
-            "emocje": 10.0,      # Intensywna radość (EFEMERYCZNA!)
-            "affections": 5.0,   # Głębokie uniesienie (TRWAŁE)
-            "przestrzen": 3.0,
-            "kreacja": 6.0,
-            "czas": 2.0
-        }
-    },
+    "JAZZ_COOL": np.array([
+        2.0,   # radość
+        3.0,   # smutek (melancholia)
+        0.0,   # strach
+        0.0,   # gniew
+        3.0,   # miłość
+        0.0,   # wstręt
+        2.0,   # zaskoczenie
+        5.0,   # akceptacja (relaks)
+        5.0,   # logika
+        4.0,   # wiedza
+        -1.0,  # czas (laid back)
+        5.0,   # kreacja
+        3.0,   # byt
+        4.0,   # przestrzeń (atmosfera)
+        0.0,   # chaos
+    ]),
     
-    # === GATUNKI POPULARNE ===
+    "FREE_JAZZ": np.array([
+        2.0,   # radość
+        2.0,   # smutek
+        3.0,   # strach (niepokój)
+        4.0,   # gniew (protest)
+        1.0,   # miłość
+        2.0,   # wstręt (konwencja)
+        7.0,   # zaskoczenie (nieprzewidywalność)
+        1.0,   # akceptacja
+        -2.0,  # logika (odrzucenie formy)
+        4.0,   # wiedza
+        3.0,   # czas (nieregularny)
+        9.0,   # kreacja (totalna wolność)
+        4.0,   # byt (fizyczność gry)
+        5.0,   # przestrzeń
+        8.0,   # chaos (celowy)
+    ]),
     
-    "BLUES": {
-        "opis": "12-taktowy blues. Melancholia i autentyczność.",
-        "f_intencja_wektor": {
-            "logika": 3.5,       # Schemat harmoniczny
-            "czas": -2.0,        # Wolniejsze
-            "affections": -3.0,  # Głęboki smutek (TRWAŁE)
-            "emocje": -1.0,      # Lekka melancholia
-            "wiedza": 2.0
-        }
-    },
+    # ═══════════════════════════════════════════════════════════════════════════
+    # ROCK
+    # ═══════════════════════════════════════════════════════════════════════════
     
-    "ROCK_AND_ROLL": {
-        "opis": "Klasyczny Rock'n'Roll. Energia i bunt.",
-        "f_intencja_wektor": {
-            "czas": 5.0,         # Szybkie tempo
-            "emocje": 5.0,       # Euforia (EFEMERYCZNA)
-            "affections": 2.0,   # Pozytywna energia (TRWAŁA)
-            "logika": 2.0,
-            "kreacja": 3.0
-        }
-    },
+    "ROCK_CLASSIC": np.array([
+        5.0,   # radość (energia)
+        1.0,   # smutek
+        0.0,   # strach
+        3.0,   # gniew (bunt)
+        2.0,   # miłość
+        0.0,   # wstręt
+        2.0,   # zaskoczenie
+        3.0,   # akceptacja
+        3.0,   # logika (riff-based)
+        2.0,   # wiedza
+        5.0,   # czas (driving beat)
+        4.0,   # kreacja
+        6.0,   # byt (głośność, fizyczność)
+        3.0,   # przestrzeń
+        2.0,   # chaos
+    ]),
     
-    "HEAVY_METAL": {
-        "opis": "Ciężki metal. Agresja i moc.",
-        "f_intencja_wektor": {
-            "affections": -4.0,  # Gniew/bunt (TRWAŁE)
-            "emocje": -5.0,      # Agresja (EFEMERYCZNA)
-            "czas": 4.0,         # Szybkie
-            "kreacja": 5.0,
-            "logika": 3.0        # Złożone riffy
-        }
-    },
+    "PROG_ROCK": np.array([
+        3.0,   # radość
+        2.0,   # smutek
+        1.0,   # strach
+        1.0,   # gniew
+        2.0,   # miłość
+        0.0,   # wstręt
+        6.0,   # zaskoczenie (zmienne metrum)
+        3.0,   # akceptacja
+        7.0,   # logika (złożone struktury)
+        6.0,   # wiedza (koncepcje)
+        4.0,   # czas (zmienne)
+        8.0,   # kreacja (eksperyment)
+        5.0,   # byt
+        6.0,   # przestrzeń (epickość)
+        3.0,   # chaos (kontrolowany)
+    ]),
     
-    "PUNK": {
-        "opis": "Punk rock. Surowy, szybki, buntowniczy.",
-        "f_intencja_wektor": {
-            "czas": 6.0,         # Bardzo szybkie
-            "emocje": -6.0,      # Gniew (EFEMERYCZNY)
-            "affections": -2.0,  # Bunt (TRWAŁY)
-            "logika": -2.0,      # Prostota
-            "kreacja": 4.0
-        }
-    },
+    "PUNK_ROCK": np.array([
+        3.0,   # radość (energia)
+        1.0,   # smutek
+        1.0,   # strach
+        7.0,   # gniew (bunt, protest)
+        0.0,   # miłość
+        3.0,   # wstręt (anty-establishment)
+        2.0,   # zaskoczenie
+        -1.0,  # akceptacja (odrzucenie)
+        -2.0,  # logika (prostota)
+        1.0,   # wiedza (DIY)
+        7.0,   # czas (szybko)
+        3.0,   # kreacja (surowa)
+        7.0,   # byt (raw energy)
+        1.0,   # przestrzeń (kluby)
+        5.0,   # chaos
+    ]),
     
-    "JAZZ": {
-        "opis": "Jazz. Improwizacja i złożoność harmoniczna.",
-        "f_intencja_wektor": {
-            "logika": 5.0,       # Złożona harmonia
-            "kreacja": 7.0,      # Improwizacja!
-            "wiedza": 5.0,       # Znajomość standardów
-            "affections": 2.0,   # Subtelna radość
-            "czas": 1.0
-        }
-    },
-    
-    "POP": {
-        "opis": "Muzyka popularna. Przystępność i chwytliwość.",
-        "f_intencja_wektor": {
-            "emocje": 4.0,       # Łatwa radość (EFEMERYCZNA)
-            "czas": 2.0,
-            "logika": 1.0,       # Prosta forma
-            "affections": 1.0,
-            "kreacja": 2.0
-        }
-    },
-    
-    # === MUZYKA WSPÓŁCZESNA / EKSPERYMENTALNA ===
-    
-    "AMBIENT": {
-        "opis": "Muzyka otoczenia. Przestrzeń i tekstura.",
-        "f_intencja_wektor": {
-            "przestrzen": 5.0,   # Maksymalna przestrzenność
-            "kreacja": 6.0,
-            "logika": -1.0,      # Brak struktury
-            "czas": -2.0,        # Wolne/bezczasowe
-            "affections": 1.0    # Spokój (TRWAŁY)
-        }
-    },
-    
-    "MINIMALIZM": {
-        "opis": "Minimalizm. Powtarzalność i subtelna ewolucja.",
-        "f_intencja_wektor": {
-            "logika": 4.0,       # Precyzyjna struktura
-            "czas": 0.0,         # Statyczne
-            "kreacja": 5.0,
-            "przestrzen": 3.0,
-            "emocje": 0.0        # Neutralne
-        }
-    },
-    
-    "ELEKTRONIKA": {
-        "opis": "Muzyka elektroniczna. Syntezatory i beat.",
-        "f_intencja_wektor": {
-            "kreacja": 6.0,      # Eksperyment
-            "czas": 3.0,         # Rytmiczne
-            "przestrzen": 4.0,   # Brzmienie syntetyczne
-            "logika": 3.0,
-            "wiedza": 3.0        # Znajomość technologii
-        }
-    },
-    
-    # === MUZYKA TRADYCYJNA / REGIONALNA ===
-    
-    "FOLK": {
-        "opis": "Muzyka ludowa. Tradycja i prostota.",
-        "f_intencja_wektor": {
-            "wiedza": 3.0,       # Tradycja
-            "affections": 2.0,   # Nostalgia (TRWAŁA)
-            "logika": 1.0,       # Prosta forma
-            "emocje": 2.0,
-            "etyka": 2.0         # Wspólnota
-        }
-    },
-    
-    "TANGO": {
-        "opis": "Argentyńskie tango. Pasja i dramat.",
-        "f_intencja_wektor": {
-            "affections": 4.0,   # Namiętność (TRWAŁA!)
-            "emocje": 5.0,       # Intensywność
-            "czas": 2.0,
-            "kreacja": 4.0,
-            "przestrzen": 2.0
-        }
-    },
-    
-    "WALC": {
-        "opis": "Walc wiedeński. Elegancja w 3/4.",
-        "f_intencja_wektor": {
-            "czas": 3.0,         # Obrotowe tempo
-            "affections": 3.0,   # Romantyzm (TRWAŁY)
-            "logika": 2.0,       # Forma taneczna
-            "emocje": 3.0,
-            "przestrzen": 2.0
-        }
-    }
+    "HEAVY_METAL": np.array([
+        2.0,   # radość
+        2.0,   # smutek
+        4.0,   # strach (mroczne tematy)
+        7.0,   # gniew (agresja)
+        0.0,   # miłość
+        3.0,   # wstręt
+        3.0,   # zaskoczenie
+        1.0,   # akceptacja
+        4.0,   # logika (riffy)
+        3.0,   # wiedza
+        6.0,   # czas (szybko)
+        5.0,   # kreacja
+        8.0,   # byt (ciężar, głośność)
+        4.0,   # przestrzeń
+        4.0,   # chaos
+    ]),
+
+    # NOWE GATUNKI – DLA POP I FOLK (mniej monotonnych)
+    "POP": np.array([
+        7.0,   # radość – chwytliwe hooki
+        1.0,   # smutek
+        0.0,   # strach
+        1.0,   # gniew
+        3.0,   # miłość
+        0.0,   # wstręt
+        3.0,   # zaskoczenie
+        4.0,   # akceptacja
+        3.0,   # logika – struktura zwrotkowa
+        2.0,   # wiedza
+        4.0,   # czas – puls dance
+        6.0,   # kreacja – produkcja, hooki
+        5.0,   # byt – energia
+        4.0,   # przestrzeń – warstwy
+        4.0,   # chaos – trochę nieprzewidywalności
+    ]),
+
+    "FOLK": np.array([
+        5.0,   # radość
+        3.0,   # smutek (nostalgia)
+        0.0,   # strach
+        1.0,   # gniew
+        4.0,   # miłość (tradycja)
+        0.0,   # wstręt
+        2.0,   # zaskoczenie
+        6.0,   # akceptacja
+        3.0,   # logika
+        6.0,   # wiedza (opowieści)
+        3.0,   # czas
+        5.0,   # kreacja (wariacje ludowe)
+        7.0,   # byt (autentyczność)
+        4.0,   # przestrzeń
+        4.0,   # chaos – żywszy feel
+    ]),
 }
-
-
-def get_genre_info(genre_name: str) -> dict:
-    """Zwraca informacje o gatunku."""
-    return GENRE_DEFINITIONS.get(genre_name.upper(), None)
-
-
-def list_genres() -> list:
-    """Zwraca listę wszystkich zdefiniowanych gatunków."""
-    return list(GENRE_DEFINITIONS.keys())
-
-
-def get_genres_by_mood(positive: bool = True) -> list:
-    """
-    Filtruje gatunki według nastroju (bazując na affections).
-    
-    Args:
-        positive: True dla pozytywnych, False dla negatywnych
-    """
-    result = []
-    for name, data in GENRE_DEFINITIONS.items():
-        aff = data['f_intencja_wektor'].get('affections', 0)
-        if (positive and aff > 0) or (not positive and aff < 0):
-            result.append(name)
-    return result

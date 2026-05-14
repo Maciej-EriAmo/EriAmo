@@ -1,47 +1,68 @@
 # -*- coding: utf-8 -*-
 """
-ui.py
-Moduł interfejsu użytkownika dla EriAmo.
-Obsługuje animacje tekstu, loga i efekty wizualne.
+ui.py v8.5
+Moduł interfejsu użytkownika dla EriAmo Union.
+Obsługuje animacje tekstu, loga i efekty wizualne w stylu Retro Terminal.
 """
 
 import sys
 import time
 import random
-from config import Colors
 
-class FancyUI:
-    """Zarządza warstwą wizualną terminala."""
+# Używamy centralnej konfiguracji (Single Source of Truth)
+try:
+    from union_config import Colors
+except ImportError:
+    # Fallback, gdyby brakowało pliku konfiguracyjnego
+    class Colors:
+        CYAN = "\033[36m"
+        MAGENTA = "\033[35m"
+        GREEN = "\033[32m"
+        YELLOW = "\033[33m"
+        RED = "\033[31m"
+        BOLD = "\033[1m"
+        FAINT = "\033[2m"
+        RESET = "\033[0m"
+        WHITE = "\033[37m"
+
+class RetroUI:
+    """Zarządza warstwą wizualną terminala (Retro Style)."""
+
+    def __init__(self):
+        self.typing_speed = 0.02
 
     def print_logo(self):
         """Wyświetla logo startowe."""
         logo = f"""
     {Colors.CYAN}╔══════════════════════════════════════════════════════════════╗
     ║ {Colors.BOLD}{Colors.MAGENTA}  E R I A M O   U N I O N   {Colors.CYAN}                                 ║
-    ║ {Colors.FAINT}  Artificial General Intelligence v5.4                       {Colors.CYAN}║
+    ║ {Colors.FAINT}  Artificial General Intelligence v8.5                       {Colors.CYAN}║
     ╚══════════════════════════════════════════════════════════════╝{Colors.RESET}
         """
         print(logo)
-        time.sleep(0.5)
+        time.sleep(0.3)
 
-    def print_animated_text(self, text, color=Colors.WHITE, delay=0.03):
+    def print_animated_text(self, text, color=Colors.WHITE, delay=None):
         """
         Wyświetla tekst znak po znaku (efekt maszyny do pisania).
         """
+        if delay is None:
+            delay = self.typing_speed
+
         print(f"{color}", end="")
         for char in text:
             sys.stdout.write(char)
             sys.stdout.flush()
             # Interpunkcja daje dłuższą pauzę (naturalność mowy)
             if char in [".", "!", "?"]:
-                time.sleep(delay * 4)
+                time.sleep(delay * 5)
             elif char in [",", ";"]:
-                time.sleep(delay * 2)
+                time.sleep(delay * 3)
             else:
                 time.sleep(delay)
         print(f"{Colors.RESET}")
 
-    def show_thinking_dots(self, message="Myślę", duration_sec=1.5, color=Colors.FAINT + Colors.CYAN):
+    def show_thinking_dots(self, message="Myślę", duration_sec=1.0, color=Colors.FAINT + Colors.CYAN):
         """
         Wyświetla animowane kropki [...]
         """
@@ -64,7 +85,12 @@ class FancyUI:
             col = Colors.YELLOW
         elif type == "ERROR":
             col = Colors.RED
+        elif type == "UNION":
+            col = Colors.MAGENTA
         else:
             col = Colors.CYAN
             
         print(f"{col}[{type}] {msg}{Colors.RESET}")
+
+# Alias dla kompatybilności wstecznej (jeśli jakieś stare moduły tego używają)
+FancyUI = RetroUI

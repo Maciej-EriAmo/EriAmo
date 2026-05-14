@@ -1,0 +1,121 @@
+{
+  "interferences": {
+    "joy": {
+      "rel_magnitude": 1.5163251311956798,
+      "rel_phase": 0.183553090725176,
+      "abs_magnitude": 0.5019481623625349
+    },
+    "trust": {
+      "rel_magnitude": 0.7673901055343735,
+      "rel_phase": 1.0523838047929936,
+      "abs_magnitude": 0.2540286679707231
+    },
+    "fear": {
+      "rel_magnitude": 0.6112672072808826,
+      "rel_phase": -1.5253974353906141,
+      "abs_magnitude": 0.2023474023444926
+    },
+    "surprise": {
+      "rel_magnitude": 0.6156966844683441,
+      "rel_phase": -1.7829004907862078,
+      "abs_magnitude": 0.2038136894149442
+    },
+    "sadness": {
+      "rel_magnitude": 0.6730284275660455,
+      "rel_phase": -2.093005043548794,
+      "abs_magnitude": 0.22279218057154726
+    },
+    "disgust": {
+      "rel_magnitude": 0.6917681497605855,
+      "rel_phase": -1.6117152165343165,
+      "abs_magnitude": 0.22899557912058832
+    },
+    "anger": {
+      "rel_magnitude": 0.6174209578280532,
+      "rel_phase": 0.7863653463121273,
+      "abs_magnitude": 0.20438447454968253
+    },
+    "anticipation": {
+      "rel_magnitude": 1.0,
+      "rel_phase": 0.0,
+      "abs_magnitude": 0.33102937624382034
+    },
+    "logic": {
+      "rel_magnitude": 0.4909947536635678,
+      "rel_phase": -0.8761949054936861,
+      "abs_magnitude": 0.16253368704423907
+    },
+    "knowledge": {
+      "rel_magnitude": 0.6046530918284779,
+      "rel_phase": 0.8142112556213174,
+      "abs_magnitude": 0.20015793583187846
+    },
+    "time": {
+      "rel_magnitude": 0.8155909378706874,
+      "rel_phase": 0.9631218702491473,
+      "abs_magnitude": 0.26998455943344607
+    },
+    "creation": {
+      "rel_magnitude": 0.7676051318533534,
+      "rel_phase": -0.2177686739739589,
+      "abs_magnitude": 0.25409984799897106
+    },
+    "being": {
+      "rel_magnitude": 0.6855899920871081,
+      "rel_phase": 2.8946705583888885,
+      "abs_magnitude": 0.22695042743960112
+    },
+    "space": {
+      "rel_magnitude": 0.502718452742374,
+      "rel_phase": -1.3688067055062203,
+      "abs_magnitude": 0.16641457583756655
+    },
+    "chaos": {
+      "rel_magnitude": 0.7669995031468826,
+      "rel_phase": -0.43107699784703385,
+      "abs_magnitude": 0.25389936710603267
+    },
+    "vacuum": {
+      "rel_magnitude": 0.001366420411741477,
+      "rel_phase": 0.0013028734021367332,
+      "abs_magnitude": 0.0004523252965856053
+    }
+  },
+  "predicted_trajectory": {
+    "joy": 0.2519519576991257,
+    "joy_phase": 0.18225021732303928,
+    "trust": 0.06453056415097988,
+    "trust_phase": 1.051080931390857,
+    "fear": 0.040944471235563974,
+    "fear_phase": -1.5267003087927509,
+    "surprise": 0.04154001999293134,
+    "surprise_phase": -1.7842033641883446,
+    "sadness": 0.049636355723824924,
+    "sadness_phase": -2.094307916950931,
+    "disgust": 0.05243897525677363,
+    "disgust_phase": -1.6130180899364532,
+    "anger": 0.04177301343694983,
+    "anger_phase": 0.7850624729099905,
+    "anticipation": 0.10958044793637277,
+    "anticipation_phase": -0.0013028734021367332,
+    "logic": 0.026417199424194647,
+    "logic_phase": -0.8774977788958228,
+    "knowledge": 0.040063199276478376,
+    "knowledge_phase": 0.8129083822191806,
+    "time": 0.07289166233247198,
+    "time_phase": 0.9618189968470106,
+    "creation": 0.0645667327531002,
+    "creation_phase": -0.21907154737609563,
+    "being": 0.05150649651501765,
+    "being_phase": 2.893367684986752,
+    "space": 0.02769381105119719,
+    "space_phase": -1.370109578908357,
+    "chaos": 0.06446488861684395,
+    "chaos_phase": -0.4323798712491706,
+    "vacuum": 2.045981739312558e-07,
+    "vacuum_phase": 0.0
+  },
+  "timestamp": 1771577880.8984036,
+  "ref_dim": "anticipation",
+  "entropy": 3.588393603702994
+}
